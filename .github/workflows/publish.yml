@@ -36,6 +36,8 @@ jobs:
         run: |
           python -m twine upload --repository-url https://upload.pypi.org/legacy/ dist/* || \
           python -m twine upload --repository-url https://upload.pypi.org/legacy/ dist/* --skip-existing
+        # Note: For GitHub Packages, you may need to configure pip authentication
+        # See: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-python-registry
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3

@@ -96,17 +96,13 @@ class SocialMediaContentState(TypedDict):
     url: str
     max_slides: int
     username: Optional[str]  # Social media username (e.g., "@robots")
-    tagline: Optional[
-        str
-    ]  # Tagline/brand message (e.g., "daily programming tips & tricks")
+    tagline: Optional[str]  # Tagline/brand message (e.g., "daily programming tips & tricks")
     title: Optional[str]  # Custom title to override scraped article title
     extra_instructions: Optional[str]  # Additional instructions for the LLM
     font_name: Optional[str]  # Font name for slides (e.g., "Arial", "Roboto")
     background_info: Optional[str]  # Background description for slides
     color_schema: Optional[str]  # Color schema description for slides
-    image_provider: Optional[
-        str
-    ]  # Image generation provider ("openrouter" or "openai")
+    image_provider: Optional[str]  # Image generation provider ("openrouter" or "openai")
     image_model: Optional[
         str
     ]  # Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
@@ -245,9 +241,7 @@ async def scrape_article_content(url: str) -> Dict[str, Any]:
                     """
                 )
 
-                logger.info(
-                    f"Successfully scraped article: {content.get('title', 'Unknown')}"
-                )
+                logger.info(f"Successfully scraped article: {content.get('title', 'Unknown')}")
                 return content
 
             finally:
@@ -366,9 +360,7 @@ def generate_image_with_openai_dalle(
                     return None
 
                 # Save image locally
-                save_result = save_image_locally(
-                    image_bytes, output_folder, slide_number, prompt
-                )
+                save_result = save_image_locally(image_bytes, output_folder, slide_number, prompt)
 
                 if save_result:
                     logger.info(
@@ -388,9 +380,7 @@ def generate_image_with_openai_dalle(
                 logger.error("No image data in OpenAI response")
                 return None
         else:
-            logger.error(
-                f"OpenAI API returned status code {response.status_code}: {response.text}"
-            )
+            logger.error(f"OpenAI API returned status code {response.status_code}: {response.text}")
             return None
 
     except Exception as e:
@@ -474,9 +464,7 @@ def generate_image_with_openai_edits(
             "Authorization": f"Bearer {OPENAI_API_KEY}",
         }
 
-        response = requests.post(
-            url, headers=headers, files=files, data=data, timeout=120
-        )
+        response = requests.post(url, headers=headers, files=files, data=data, timeout=120)
 
         if response.status_code == 200:
             result = response.json()
@@ -501,9 +489,7 @@ def generate_image_with_openai_edits(
                     return None
 
                 # Save image locally
-                save_result = save_image_locally(
-                    image_bytes, output_folder, slide_number, prompt
-                )
+                save_result = save_image_locally(image_bytes, output_folder, slide_number, prompt)
 
                 if save_result:
                     logger.info(
@@ -523,9 +509,7 @@ def generate_image_with_openai_edits(
                 logger.error("No image data in OpenAI response")
                 return None
         else:
-            logger.error(
-                f"OpenAI API returned status code {response.status_code}: {response.text}"
-            )
+            logger.error(f"OpenAI API returned status code {response.status_code}: {response.text}")
             return None
 
     except Exception as e:
@@ -565,9 +549,7 @@ def generate_carousel_image(
 
         # GPT-Image models support reference images via the edits endpoint
         if reference_image_base64 and openai_model.startswith("gpt-image"):
-            logger.info(
-                f"Using OpenAI {openai_model} edits endpoint with reference image"
-            )
+            logger.info(f"Using OpenAI {openai_model} edits endpoint with reference image")
             return generate_image_with_openai_edits(
                 prompt=prompt,
                 slide_number=slide_number,
@@ -641,9 +623,7 @@ Generate a {orientation} infographic that is visually IDENTICAL to the reference
             message_content = [
                 {
                     "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/png;base64,{reference_image_base64}"
-                    },
+                    "image_url": {"url": f"data:image/png;base64,{reference_image_base64}"},
                 },
                 {"type": "text", "text": design_instruction},
             ]
@@ -733,9 +713,7 @@ Generate a {orientation} infographic that is visually IDENTICAL to the reference
                     or "```svg" in content.lower()
                     or "svg" in content.lower()
                 ):
-                    logger.info(
-                        f"Detected SVG response from model, converting to PNG..."
-                    )
+                    logger.info(f"Detected SVG response from model, converting to PNG...")
 
                     # Extract SVG code from markdown code blocks if present
                     svg_content = content
@@ -749,9 +727,7 @@ Generate a {orientation} infographic that is visually IDENTICAL to the reference
                             svg_content = svg_match.group(1).strip()
                     # Then try generic code block that might contain SVG
                     elif "```" in content and "<svg" in content.lower():
-                        svg_match = re.search(
-                            r"```[^\n]*\s*(.*?)\s*```", content, re.DOTALL
-                        )
+                        svg_match = re.search(r"```[^\n]*\s*(.*?)\s*```", content, re.DOTALL)
                         if svg_match:
                             potential_svg = svg_match.group(1).strip()
                             if "<svg" in potential_svg.lower():
@@ -769,9 +745,7 @@ Generate a {orientation} infographic that is visually IDENTICAL to the reference
                     try:
                         import cairosvg
 
-                        image_bytes = cairosvg.svg2png(
-                            bytestring=svg_content.encode("utf-8")
-                        )
+                        image_bytes = cairosvg.svg2png(bytestring=svg_content.encode("utf-8"))
 
                         # Save image locally
                         save_result = save_image_locally(
@@ -1146,9 +1120,7 @@ Now generate exactly {max_slides} slides following all rules above.
 
             slides = json.loads(response_text)
 
-            logger.info(
-                f"Successfully generated {len(slides)} carousel slides from prompt"
-            )
+            logger.info(f"Successfully generated {len(slides)} carousel slides from prompt")
             return slides
 
         except Exception as e:
@@ -1441,10 +1413,11 @@ async def scrape_article_node(
         article_title = article_content.get("title", "carousel_post")
         sanitized_title = sanitize_filename(article_title)
 
-        try:
-            script_dir = Path(__file__).parent.absolute()
-            base_output_dir = script_dir / "output"
-        except NameError:
+        # Use current working directory or environment variable for output
+        output_base = os.getenv("OUTPUT_DIR", None)
+        if output_base:
+            base_output_dir = Path(output_base)
+        else:
             base_output_dir = Path.cwd() / "output"
 
         # Create a folder for this social media content
@@ -1722,9 +1695,7 @@ class SocialMediaContentGeneratorAgent:
             print("✅ Workflow completed successfully!")
             print("=" * 80)
 
-            final_state = (
-                result.get("agent", initial_state) if result else initial_state
-            )
+            final_state = result.get("agent", initial_state) if result else initial_state
 
             if final_state.get("status") == "error":
                 error_msg = final_state.get("error", "Unknown error occurred")
@@ -1733,9 +1704,7 @@ class SocialMediaContentGeneratorAgent:
             return {
                 "status": "success",
                 "url": url,
-                "article_title": final_state.get("article_content", {}).get(
-                    "title", "Unknown"
-                ),
+                "article_title": final_state.get("article_content", {}).get("title", "Unknown"),
                 "total_slides": len(final_state.get("slides_with_images", [])),
                 "slides": final_state.get("slides_with_images", []),
                 "processing_status": final_state.get("status", "unknown"),
@@ -1829,10 +1798,11 @@ async def generate_single_informational_image(
         article_title = article_content.get("title", "informational_image")
         sanitized_title = sanitize_filename(article_title)
 
-        try:
-            script_dir = Path(__file__).parent.absolute()
-            base_output_dir = script_dir / "output"
-        except NameError:
+        # Use current working directory or environment variable for output
+        output_base = os.getenv("OUTPUT_DIR", None)
+        if output_base:
+            base_output_dir = Path(output_base)
+        else:
             base_output_dir = Path.cwd() / "output"
 
         # Create a folder for this image
@@ -1920,10 +1890,11 @@ async def generate_infographic_from_prompt(
         # Create output folder based on prompt
         sanitized_prompt = sanitize_filename(user_prompt[:50])
 
-        try:
-            script_dir = Path(__file__).parent.absolute()
-            base_output_dir = script_dir / "output"
-        except NameError:
+        # Use current working directory or environment variable for output
+        output_base = os.getenv("OUTPUT_DIR", None)
+        if output_base:
+            base_output_dir = Path(output_base)
+        else:
             base_output_dir = Path.cwd() / "output"
 
         # Create a folder for this infographic
@@ -2014,10 +1985,11 @@ async def generate_carousel_from_prompt(
         # Create output folder based on prompt
         sanitized_prompt = sanitize_filename(user_prompt[:50])
 
-        try:
-            script_dir = Path(__file__).parent.absolute()
-            base_output_dir = script_dir / "output"
-        except NameError:
+        # Use current working directory or environment variable for output
+        output_base = os.getenv("OUTPUT_DIR", None)
+        if output_base:
+            base_output_dir = Path(output_base)
+        else:
             base_output_dir = Path.cwd() / "output"
 
         # Create a folder for this carousel
@@ -2126,10 +2098,11 @@ async def generate_infographic_with_reference_image(
         # Create output folder based on prompt
         sanitized_prompt = sanitize_filename(user_prompt[:50])
 
-        try:
-            script_dir = Path(__file__).parent.absolute()
-            base_output_dir = script_dir / "output"
-        except NameError:
+        # Use current working directory or environment variable for output
+        output_base = os.getenv("OUTPUT_DIR", None)
+        if output_base:
+            base_output_dir = Path(output_base)
+        else:
             base_output_dir = Path.cwd() / "output"
 
         # Create a folder for this infographic
@@ -2163,9 +2136,7 @@ NOTE: The reference image will define all design elements. Just ensure the above
 
         # Generate the image with reference
         infographic_type = infographic_content.get("type", "unknown")
-        logger.info(
-            f"Generating infographic image with reference (type: {infographic_type})..."
-        )
+        logger.info(f"Generating infographic image with reference (type: {infographic_type})...")
 
         image_provider_param = image_provider or IMAGE_PROVIDER
         image_model_param = image_model or IMAGE_MODEL
