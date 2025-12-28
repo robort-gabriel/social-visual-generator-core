@@ -7,7 +7,7 @@ python-multipart>=0.0.6
 
 # Core Dependencies
 langgraph>=0.0.20
-langchain>=0.1.0
+langchain==1.2.0
 langchain-openai>=0.0.5
 langchain-core>=1.2.5
 python-dotenv>=1.0.0

@@ -37,7 +37,7 @@ setup(
     python_requires=">=3.11",
     install_requires=[
         "langgraph>=0.0.20",
-        "langchain>=0.1.0",
+        "langchain>=1.2.0",
         "langchain-openai>=0.0.5",
         "langchain-core>=1.2.5",
         "playwright>=1.40.0",
