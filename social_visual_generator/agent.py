@@ -73,11 +73,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Get API keys from environment
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-
-# Image generation provider configuration
+# Image generation provider configuration (fallback to env if not provided)
 IMAGE_PROVIDER = os.getenv("IMAGE_PROVIDER", "openrouter")  # "openrouter" or "openai"
 IMAGE_MODEL = os.getenv(
     "IMAGE_MODEL", None
@@ -98,6 +94,8 @@ class SocialMediaContentState(TypedDict):
     username: Optional[str]  # Social media username (e.g., "@robots")
     tagline: Optional[str]  # Tagline/brand message (e.g., "daily programming tips & tricks")
     title: Optional[str]  # Custom title to override scraped article title
+    openai_api_key: Optional[str]  # OpenAI API key
+    openrouter_api_key: Optional[str]  # OpenRouter API key
     extra_instructions: Optional[str]  # Additional instructions for the LLM
     font_name: Optional[str]  # Font name for slides (e.g., "Arial", "Roboto")
     background_info: Optional[str]  # Background description for slides
@@ -261,6 +259,7 @@ def generate_image_with_openai_dalle(
     prompt: str,
     slide_number: int,
     output_folder: Path,
+    openai_api_key: Optional[str] = None,
     orientation: str = "square",
     model: str = "dall-e-3",
     size: str = "1024x1024",
@@ -273,6 +272,7 @@ def generate_image_with_openai_dalle(
         prompt: Image generation prompt
         slide_number: Slide number for naming
         output_folder: Folder to save the image in
+        openai_api_key: OpenAI API key (if None, falls back to OPENAI_API_KEY env var)
         orientation: Image orientation (square recommended for carousels)
         model: Model to use ("dall-e-3", "dall-e-2", "gpt-image-1.5", etc.)
         size: Image size ("1024x1024", "1792x1024", "1024x1792", "1536x1024", "1024x1536")
@@ -281,9 +281,11 @@ def generate_image_with_openai_dalle(
     Returns:
         Dictionary with local image path and metadata, or None if failed
     """
-    if not OPENAI_API_KEY:
-        logger.warning("OPENAI_API_KEY not found in environment variables")
-        return None
+    api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "OpenAI API key is required. Provide openai_api_key parameter or set OPENAI_API_KEY environment variable."
+        )
 
     try:
         logger.info(f"Generating image with OpenAI {model} for slide {slide_number}")
@@ -292,7 +294,7 @@ def generate_image_with_openai_dalle(
         url = "https://api.openai.com/v1/images/generations"
 
         headers = {
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
 
@@ -407,6 +409,7 @@ def generate_image_with_openai_edits(
         slide_number: Slide number for naming
         output_folder: Folder to save the image in
         reference_image_base64: Base64-encoded reference image to use as design guide
+        openai_api_key: OpenAI API key (if None, falls back to OPENAI_API_KEY env var)
         orientation: Image orientation (square recommended for carousels)
         model: GPT-Image model to use ("gpt-image-1", "gpt-image-1.5", etc.)
         size: Image size ("1024x1024", "1536x1024", "1024x1536", or "auto")
@@ -415,9 +418,11 @@ def generate_image_with_openai_edits(
     Returns:
         Dictionary with local image path and metadata, or None if failed
     """
-    if not OPENAI_API_KEY:
-        logger.warning("OPENAI_API_KEY not found in environment variables")
-        return None
+    api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "OpenAI API key is required. Provide openai_api_key parameter or set OPENAI_API_KEY environment variable."
+        )
 
     try:
         logger.info(
@@ -461,7 +466,7 @@ def generate_image_with_openai_edits(
             data["quality"] = "auto"
 
         headers = {
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Authorization": f"Bearer {api_key}",
         }
 
         response = requests.post(url, headers=headers, files=files, data=data, timeout=120)
@@ -522,6 +527,8 @@ def generate_carousel_image(
     prompt: str,
     slide_number: int,
     output_folder: Path,
+    openai_api_key: Optional[str] = None,
+    openrouter_api_key: Optional[str] = None,
     orientation: str = "square",
     reference_image_base64: Optional[str] = None,
     provider: str = "openrouter",
@@ -534,6 +541,8 @@ def generate_carousel_image(
         prompt: Image generation prompt
         slide_number: Slide number for naming
         output_folder: Folder to save the image in
+        openai_api_key: OpenAI API key (if None, falls back to OPENAI_API_KEY env var)
+        openrouter_api_key: OpenRouter API key (if None, falls back to OPENROUTER_API_KEY env var)
         orientation: Image orientation (square recommended for carousels)
         reference_image_base64: Optional base64-encoded reference image to use as design guide
         provider: Image generation provider ("openrouter" or "openai")
@@ -555,6 +564,7 @@ def generate_carousel_image(
                 slide_number=slide_number,
                 output_folder=output_folder,
                 reference_image_base64=reference_image_base64,
+                openai_api_key=openai_api_key,
                 orientation=orientation,
                 model=openai_model,
             )
@@ -572,14 +582,17 @@ def generate_carousel_image(
             prompt=prompt,
             slide_number=slide_number,
             output_folder=output_folder,
+            openai_api_key=openai_api_key,
             orientation=orientation,
             model=openai_model,
         )
 
     # Default to OpenRouter (existing logic)
-    if not OPENROUTER_API_KEY:
-        logger.warning("OPENROUTER_API_KEY not found in environment variables")
-        return None
+    api_key = openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "OpenRouter API key is required. Provide openrouter_api_key parameter or set OPENROUTER_API_KEY environment variable."
+        )
 
     try:
         # Create carousel-optimized prompt
@@ -611,7 +624,7 @@ Generate a {orientation} infographic that is visually IDENTICAL to the reference
         url = "https://openrouter.ai/api/v1/chat/completions"
 
         headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://contentrob.com",
             "X-Title": "ContentRob",
@@ -813,14 +826,22 @@ Generate a {orientation} infographic that is visually IDENTICAL to the reference
 class LLMService:
     """Service for generating carousel slide content using LLM."""
 
-    def __init__(self, model_name: str = "gpt-5.2-2025-12-11", temperature: float = 1):
-        if not OPENAI_API_KEY:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
+    def __init__(
+        self,
+        openai_api_key: Optional[str] = None,
+        model_name: str = "gpt-5.2-2025-12-11",
+        temperature: float = 1,
+    ):
+        api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "OpenAI API key is required. Provide openai_api_key parameter or set OPENAI_API_KEY environment variable."
+            )
 
         self.llm = ChatOpenAI(
             model=model_name,
             temperature=temperature,
-            api_key=OPENAI_API_KEY,
+            api_key=api_key,
         )
 
     def generate_carousel_slides(
@@ -1505,10 +1526,14 @@ async def generate_images_node(
             # Generate image
             image_provider = state.get("image_provider") or IMAGE_PROVIDER
             image_model = state.get("image_model") or IMAGE_MODEL
+            openai_api_key = state.get("openai_api_key")
+            openrouter_api_key = state.get("openrouter_api_key")
             image_info = generate_carousel_image(
                 image_prompt,
                 slide_number,
                 output_folder,
+                openai_api_key=openai_api_key,
+                openrouter_api_key=openrouter_api_key,
                 provider=image_provider,
                 model=image_model,
             )
@@ -1615,7 +1640,11 @@ def create_social_media_content_generator_agent():
 class SocialMediaContentGeneratorAgent:
     """Standalone LangGraph agent for social media content generation."""
 
-    def __init__(self):
+    def __init__(
+        self, openai_api_key: Optional[str] = None, openrouter_api_key: Optional[str] = None
+    ):
+        self.openai_api_key = openai_api_key
+        self.openrouter_api_key = openrouter_api_key
         self.graph = create_social_media_content_generator_agent()
         logger.info("Social Media Content Generator Agent initialized")
 
@@ -1720,9 +1749,13 @@ class SocialMediaContentGeneratorAgent:
 # ============================================================================
 
 
-def create_agent() -> SocialMediaContentGeneratorAgent:
+def create_agent(
+    openai_api_key: Optional[str] = None, openrouter_api_key: Optional[str] = None
+) -> SocialMediaContentGeneratorAgent:
     """Factory function to create a new social media content generator agent instance."""
-    return SocialMediaContentGeneratorAgent()
+    return SocialMediaContentGeneratorAgent(
+        openai_api_key=openai_api_key, openrouter_api_key=openrouter_api_key
+    )
 
 
 # ============================================================================
@@ -1763,6 +1796,8 @@ def sanitize_filename(text: str, max_length: int = 50) -> str:
 
 async def generate_single_informational_image(
     url: str,
+    openai_api_key: Optional[str] = None,
+    openrouter_api_key: Optional[str] = None,
     username: Optional[str] = None,
     tagline: Optional[str] = None,
     title: Optional[str] = None,
@@ -1812,7 +1847,7 @@ async def generate_single_informational_image(
         logger.info(f"Created output folder: {image_folder}")
 
         # Generate content using LLM
-        llm_service = LLMService()
+        llm_service = LLMService(openai_api_key=openai_api_key)
         image_content = llm_service.generate_single_informational_image(
             article_content,
             username=username,
@@ -1834,6 +1869,8 @@ async def generate_single_informational_image(
             image_prompt,
             1,
             image_folder,
+            openai_api_key=openai_api_key,
+            openrouter_api_key=openrouter_api_key,
             orientation="square",
             provider=image_provider_param,
             model=image_model_param,
@@ -1862,6 +1899,8 @@ async def generate_single_informational_image(
 
 async def generate_infographic_from_prompt(
     user_prompt: str,
+    openai_api_key: Optional[str] = None,
+    openrouter_api_key: Optional[str] = None,
     username: Optional[str] = None,
     tagline: Optional[str] = None,
     font_name: Optional[str] = None,
@@ -1926,6 +1965,8 @@ async def generate_infographic_from_prompt(
             image_prompt,
             1,
             infographic_folder,
+            openai_api_key=openai_api_key,
+            openrouter_api_key=openrouter_api_key,
             orientation="square",
             provider=image_provider_param,
             model=image_model_param,
@@ -1954,6 +1995,8 @@ async def generate_infographic_from_prompt(
 async def generate_carousel_from_prompt(
     user_prompt: str,
     max_slides: int = 10,
+    openai_api_key: Optional[str] = None,
+    openrouter_api_key: Optional[str] = None,
     username: Optional[str] = None,
     tagline: Optional[str] = None,
     font_name: Optional[str] = None,
@@ -2027,6 +2070,8 @@ async def generate_carousel_from_prompt(
                 image_prompt,
                 slide_number,
                 carousel_folder,
+                openai_api_key=openai_api_key,
+                openrouter_api_key=openrouter_api_key,
                 orientation="square",
                 provider=image_provider_param,
                 model=image_model_param,
@@ -2068,6 +2113,8 @@ async def generate_carousel_from_prompt(
 async def generate_infographic_with_reference_image(
     user_prompt: str,
     reference_image_bytes: bytes,
+    openai_api_key: Optional[str] = None,
+    openrouter_api_key: Optional[str] = None,
     username: Optional[str] = None,
     tagline: Optional[str] = None,
     font_name: Optional[str] = None,
@@ -2144,6 +2191,8 @@ NOTE: The reference image will define all design elements. Just ensure the above
             enhanced_prompt,
             1,
             infographic_folder,
+            openai_api_key=openai_api_key,
+            openrouter_api_key=openrouter_api_key,
             orientation="square",
             reference_image_base64=reference_image_base64,
             provider=image_provider_param,
