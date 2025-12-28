@@ -39,7 +39,7 @@ setup(
         "langgraph>=0.0.20",
         "langchain>=0.1.0",
         "langchain-openai>=0.0.5",
-        "langchain-core>=0.1.0",
+        "langchain-core>=1.2.5",
         "playwright>=1.40.0",
         "aiohttp>=3.9.0",
         "beautifulsoup4>=4.12.0",
