@@ -79,7 +79,7 @@ IMAGE_MODEL = os.getenv(
     "IMAGE_MODEL", None
 )  # Model name (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
 
-# Platform constants for caption generation
+# Platform constants for caption generationn
 FACEBOOK_GROUP = "facebook_group"
 FACEBOOK_PAGE = "facebook_page"
 INSTAGRAM = "instagram"
