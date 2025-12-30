@@ -79,6 +79,15 @@ IMAGE_MODEL = os.getenv(
     "IMAGE_MODEL", None
 )  # Model name (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
 
+# Platform constants for caption generation
+FACEBOOK_GROUP = "facebook_group"
+FACEBOOK_PAGE = "facebook_page"
+INSTAGRAM = "instagram"
+LINKEDIN = "linkedin"
+PINTEREST = "pinterest"
+REDDIT = "reddit"
+ALL_PLATFORMS = [FACEBOOK_GROUP, FACEBOOK_PAGE, INSTAGRAM, LINKEDIN, PINTEREST, REDDIT]
+
 
 # ============================================================================
 # State Definition
@@ -108,6 +117,9 @@ class SocialMediaContentState(TypedDict):
     article_content: Optional[Dict[str, Any]]
     slides: Optional[List[Dict[str, Any]]]
     slides_with_images: Optional[List[Dict[str, Any]]]
+    enable_captions: Optional[bool]  # Whether to generate captions for social platforms
+    enabled_platforms: Optional[List[str]]  # List of platforms to generate captions for
+    captions: Optional[Dict[str, str]]  # Generated captions keyed by platform name
     status: str
     error: Optional[str]
 
@@ -153,6 +165,49 @@ def save_image_locally(
         }
     except Exception as e:
         logger.error(f"Error saving image locally: {e}")
+        return None
+
+
+def save_captions_json(
+    captions: Dict[str, str], output_folder: Path, filename: str = "captions.json"
+) -> Optional[str]:
+    """
+    Save captions to a JSON file in the output folder.
+
+    Args:
+        captions: Dictionary mapping platform names to captions
+        output_folder: Folder to save the JSON file in
+        filename: Name of the JSON file (default: "captions.json")
+
+    Returns:
+        Optional[str]: Path to the saved JSON file, or None if save failed
+    """
+    try:
+        if not captions:
+            logger.warning("No captions to save")
+            return None
+
+        # Ensure output folder exists
+        output_folder.mkdir(parents=True, exist_ok=True)
+
+        # Create full path
+        json_path = output_folder / filename
+
+        # Prepare data to save
+        captions_data = {
+            "generated_at": datetime.now().isoformat(),
+            "platforms": list(captions.keys()),
+            "captions": captions,
+        }
+
+        # Save as JSON
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(captions_data, f, indent=2, ensure_ascii=False)
+
+        logger.info(f"Saved captions to: {json_path}")
+        return str(json_path)
+    except Exception as e:
+        logger.error(f"Error saving captions JSON: {e}")
         return None
 
 
@@ -1404,6 +1459,255 @@ Now analyze the prompt, generate the appropriate content (list or summary), and 
             logger.error(f"Error generating infographic from prompt: {str(e)}")
             raise
 
+    def generate_captions(
+        self,
+        slides: List[Dict[str, Any]],
+        article_title: Optional[str] = None,
+        enabled_platforms: Optional[List[str]] = None,
+        username: Optional[str] = None,
+        tagline: Optional[str] = None,
+    ) -> Dict[str, str]:
+        """
+        Generate platform-specific captions for a carousel post.
+
+        Args:
+            slides: List of slide dictionaries with title, content, and image info
+            article_title: Title of the article/carousel
+            enabled_platforms: List of platform names to generate captions for
+            username: Social media username (e.g., "@robots")
+            tagline: Tagline/brand message (e.g., "daily programming tips & tricks")
+
+        Returns:
+            Dictionary mapping platform names to captions
+        """
+        try:
+            if not enabled_platforms:
+                enabled_platforms = ALL_PLATFORMS
+
+            # Set defaults
+            display_username = username or "@coding180.com"
+            display_tagline = tagline or "Daily AI Tools & Agents"
+            carousel_title = article_title or (
+                slides[0].get("title", "Carousel Post") if slides else "Carousel Post"
+            )
+
+            # Build slide summary for context
+            slide_summaries = []
+            for i, slide in enumerate(slides, 1):
+                title = slide.get("title", "")
+                content = slide.get("content", "")
+                slide_summaries.append(f"Slide {i}: {title}\n{content}")
+
+            slides_context = "\n\n".join(slide_summaries)
+
+            # Platform-specific guidelines
+            platform_guidelines = {
+                FACEBOOK_GROUP: """- Conversational and community-focused tone
+- Encourage discussion and engagement
+- Use questions to spark conversation
+- Keep it friendly and approachable
+- Include a call to share thoughts or experiences
+- Length: 150-300 words""",
+                FACEBOOK_PAGE: """- Professional but engaging tone
+- Include clear call-to-action
+- Highlight value proposition
+- Use engaging hook in first sentence
+- Include relevant hashtags (2-5)
+- Length: 100-250 words""",
+                INSTAGRAM: """- Emoji-friendly and visual-first language
+- Start with an engaging hook
+- Use line breaks for readability
+- Include 5-10 relevant hashtags at the end
+- Keep it concise and scannable
+- Encourage saves and shares
+- Length: 150-300 words (with hashtags)""",
+                LINKEDIN: """- Professional and value-focused tone
+- Industry-relevant language
+- Start with a hook that addresses the audience's pain point
+- Highlight key takeaways
+- Include a thought-provoking question or insight
+- Professional but not overly formal
+- Length: 150-300 words""",
+                PINTEREST: """- Descriptive and keyword-rich
+- Action-oriented language
+- Include relevant keywords naturally
+- Focus on benefits and outcomes
+- Clear, searchable description
+- Length: 100-200 words""",
+                REDDIT: """- Engaging hook in first sentence
+- Community-focused and discussion-provoking
+- Authentic and relatable tone
+- Ask thought-provoking questions
+- Encourage comments and discussion
+- Avoid overly promotional language
+- Length: 100-250 words""",
+            }
+
+            # Determine if this is a single image or carousel
+            is_single_image = len(slides) == 1
+            content_type = "single image post" if is_single_image else "carousel post"
+            content_context_label = "IMAGE CONTENT" if is_single_image else "CAROUSEL CONTEXT"
+            slide_label = "Image" if is_single_image else "Slide"
+
+            # Filter out unknown platforms
+            valid_platforms = [p for p in enabled_platforms if p in platform_guidelines]
+            if not valid_platforms:
+                logger.warning("No valid platforms specified, using all platforms")
+                valid_platforms = ALL_PLATFORMS
+
+            # Build platform guidelines text
+            platform_guidelines_text = f"""
+{FACEBOOK_GROUP.upper().replace('_', ' ')}:
+- Conversational and community-focused tone
+- Encourage discussion and engagement
+- Use questions to spark conversation
+- Keep it friendly and approachable
+- Include a call to share thoughts or experiences
+- Length: 150-300 words
+
+{FACEBOOK_PAGE.upper().replace('_', ' ')}:
+- Professional but engaging tone
+- Include clear call-to-action
+- Highlight value proposition
+- Use engaging hook in first sentence
+- Include relevant hashtags (2-5)
+- Length: 100-250 words
+
+{INSTAGRAM.upper()}:
+- Emoji-friendly and visual-first language
+- Start with an engaging hook
+- Use line breaks for readability
+- Include 5-10 relevant hashtags at the end
+- Keep it concise and scannable
+- Encourage saves and shares
+- Length: 150-300 words (with hashtags)
+
+{LINKEDIN.upper()}:
+- Professional and value-focused tone
+- Industry-relevant language
+- Start with a hook that addresses the audience's pain point
+- Highlight key takeaways
+- Include a thought-provoking question or insight
+- Professional but not overly formal
+- Length: 150-300 words
+
+{PINTEREST.upper()}:
+- Descriptive and keyword-rich
+- Action-oriented language
+- Include relevant keywords naturally
+- Focus on benefits and outcomes
+- Clear, searchable description
+- Length: 100-200 words
+
+{REDDIT.upper()}:
+- Engaging hook in first sentence
+- Community-focused and discussion-provoking
+- Authentic and relatable tone
+- Ask thought-provoking questions
+- Encourage comments and discussion
+- Avoid overly promotional language
+- Length: 100-250 words
+"""
+
+            # Build platform list for output
+            platforms_list = ", ".join([p.replace("_", " ").title() for p in valid_platforms])
+
+            if is_single_image:
+                content_instructions = """1. Create a compelling caption for this single image post
+2. The caption should describe and complement the image content
+3. Make it platform-appropriate following the guidelines above
+4. Include the username naturally in the caption
+5. Add a call-to-action appropriate for each platform
+6. For Instagram: Include hashtags at the end (5-10 relevant hashtags)
+7. For other platforms: Use hashtags sparingly (2-5) if appropriate"""
+            else:
+                content_instructions = """1. Create a single, cohesive caption that introduces the carousel and encourages engagement
+2. The caption should work for the entire carousel (not individual slides)
+3. Make it platform-appropriate following the guidelines above
+4. Include the username naturally in the caption
+5. Add a call-to-action appropriate for each platform
+6. Do NOT include slide numbers or "swipe to see more" - the caption should stand alone
+7. For Instagram: Include hashtags at the end (5-10 relevant hashtags)
+8. For other platforms: Use hashtags sparingly (2-5) if appropriate"""
+
+            # Single prompt to generate all captions at once
+            prompt = f"""
+You are an expert social media copywriter specializing in multi-platform content creation.
+
+Your task: Create compelling captions for a {content_type} on multiple social media platforms.
+
+=== CONTENT CONTEXT ===
+Title: {carousel_title}
+{"Image Content:" if is_single_image else f"Total Slides: {len(slides)}"}
+Username: {display_username}
+Tagline: {display_tagline}
+
+=== CONTENT DETAILS ===
+{slides_context}
+
+=== PLATFORM-SPECIFIC GUIDELINES ===
+{platform_guidelines_text}
+
+=== INSTRUCTIONS ===
+{content_instructions}
+
+=== PLATFORMS TO GENERATE CAPTIONS FOR ===
+Generate captions for these platforms: {platforms_list}
+
+=== OUTPUT FORMAT ===
+Return ONLY a valid JSON object with this exact structure:
+{{
+  "facebook_group": "Caption text for Facebook Group here...",
+  "facebook_page": "Caption text for Facebook Page here...",
+  "instagram": "Caption text for Instagram here...",
+  "linkedin": "Caption text for LinkedIn here...",
+  "pinterest": "Caption text for Pinterest here...",
+  "reddit": "Caption text for Reddit here..."
+}}
+
+IMPORTANT:
+- Only include platforms that were requested: {platforms_list}
+- Each caption should be ready to post directly on its platform
+- Do NOT include any markdown formatting, code blocks, or explanations
+- Return ONLY the JSON object
+"""
+
+            logger.info(
+                f"Generating captions for {len(valid_platforms)} platforms in a single call..."
+            )
+            response = self.llm.invoke([{"role": "user", "content": prompt}])
+            response_text = response.content.strip()
+
+            # Extract JSON from response
+            # Remove markdown code blocks if present
+            if response_text.startswith("```"):
+                response_text = re.sub(r"```json\s*|\s*```", "", response_text).strip()
+
+            # Parse JSON response
+            captions_data = json.loads(response_text)
+
+            # Filter to only include requested platforms
+            captions = {}
+            for platform in valid_platforms:
+                if platform in captions_data:
+                    caption_text = captions_data[platform].strip()
+                    # Clean up any remaining formatting
+                    if caption_text.startswith("```"):
+                        caption_text = re.sub(r"```[^\n]*\s*|\s*```", "", caption_text).strip()
+                    captions[platform] = caption_text
+                    logger.info(
+                        f"Generated caption for {platform} ({len(caption_text)} characters)"
+                    )
+                else:
+                    logger.warning(f"Caption for {platform} not found in response")
+
+            logger.info(f"Successfully generated captions for {len(captions)} platforms")
+            return captions
+
+        except Exception as e:
+            logger.error(f"Error generating captions: {str(e)}")
+            raise
+
 
 # ============================================================================
 # Graph Nodes
@@ -1560,12 +1864,88 @@ async def generate_images_node(
         return {
             **state,
             "slides_with_images": slides_with_images,
-            "status": "completed",
+            "status": "images_generated",
         }
     except Exception as e:
         print(f"❌ Error in generate_images_node: {str(e)}")
         logger.error(f"Error in generate_images_node: {str(e)}")
         return {**state, "status": "error", "error": str(e)}
+
+
+async def generate_captions_node(
+    state: SocialMediaContentState,
+) -> SocialMediaContentState:
+    """Generate platform-specific captions for the carousel post."""
+    try:
+        print("\n" + "=" * 80)
+        print("📝 NODE: generate_captions_node - Generating captions")
+        print("=" * 80)
+        logger.info("Generating captions for carousel post")
+
+        slides_with_images = state.get("slides_with_images", [])
+        enable_captions = state.get("enable_captions", False)
+        enabled_platforms = state.get("enabled_platforms")
+
+        if not enable_captions:
+            print("⏭️  Caption generation disabled, skipping...")
+            return {
+                **state,
+                "captions": {},
+                "status": "completed",
+            }
+
+        if not slides_with_images:
+            logger.warning("No slides with images found, skipping caption generation")
+            return {
+                **state,
+                "captions": {},
+                "status": "completed",
+            }
+
+        # Use default platforms if not specified
+        if not enabled_platforms:
+            enabled_platforms = ALL_PLATFORMS
+
+        # Get article title for context
+        article_content = state.get("article_content", {})
+        article_title = state.get("title") or article_content.get("title", "Carousel Post")
+
+        # Generate captions using LLM service
+        llm_service = LLMService(openai_api_key=state.get("openai_api_key"))
+        captions = llm_service.generate_captions(
+            slides=slides_with_images,
+            article_title=article_title,
+            enabled_platforms=enabled_platforms,
+            username=state.get("username"),
+            tagline=state.get("tagline"),
+        )
+
+        print(f"✅ Generated captions for {len(captions)} platforms")
+        for platform, caption in captions.items():
+            print(f"   {platform}: {len(caption)} characters")
+
+        # Save captions to JSON
+        output_folder = state.get("output_folder")
+        if output_folder and captions:
+            captions_json_path = save_captions_json(captions, output_folder)
+            if captions_json_path:
+                print(f"💾 Captions saved to: {captions_json_path}")
+
+        return {
+            **state,
+            "captions": captions,
+            "status": "completed",
+        }
+    except Exception as e:
+        print(f"❌ Error in generate_captions_node: {str(e)}")
+        logger.error(f"Error in generate_captions_node: {str(e)}")
+        # Don't fail the entire workflow if caption generation fails
+        return {
+            **state,
+            "captions": {},
+            "status": "completed",
+            "error": f"Caption generation failed: {str(e)}",
+        }
 
 
 async def agent_node(state: SocialMediaContentState) -> SocialMediaContentState:
@@ -1581,6 +1961,14 @@ async def agent_node(state: SocialMediaContentState) -> SocialMediaContentState:
 
         elif current_status == "slides_generated":
             return await generate_images_node(state)
+
+        elif current_status == "images_generated":
+            # Check if captions are enabled
+            if state.get("enable_captions", False):
+                return await generate_captions_node(state)
+            else:
+                # Skip caption generation, mark as completed
+                return {**state, "status": "completed", "captions": {}}
 
         elif current_status == "completed":
             return state
@@ -1600,6 +1988,12 @@ def should_continue(state: SocialMediaContentState) -> Literal["continue", "end"
         return "end"
     elif status == "error":
         return "end"
+    elif status == "images_generated":
+        # Continue to caption generation if enabled, otherwise end
+        if state.get("enable_captions", False):
+            return "continue"
+        else:
+            return "end"
     else:
         return "continue"
 
@@ -1661,6 +2055,8 @@ class SocialMediaContentGeneratorAgent:
         color_schema: Optional[str] = None,
         image_provider: Optional[str] = None,
         image_model: Optional[str] = None,
+        enable_captions: bool = False,
+        enabled_platforms: Optional[List[str]] = None,
         thread_id: str = "default",
     ) -> Dict[str, Any]:
         """
@@ -1678,14 +2074,20 @@ class SocialMediaContentGeneratorAgent:
             color_schema: Color schema description
             image_provider: Image generation provider ("openrouter" or "openai")
             image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+            enable_captions: Whether to generate captions for social platforms (default: False)
+            enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
             thread_id: Thread ID for conversation tracking
 
         Returns:
-            Dictionary containing carousel slides with images
+            Dictionary containing carousel slides with images and captions (if enabled)
         """
         try:
             if not url:
                 raise ValueError("URL must be provided")
+
+            # Default to all platforms if enabled but none specified
+            if enable_captions and not enabled_platforms:
+                enabled_platforms = ALL_PLATFORMS
 
             initial_state = {
                 "messages": [],
@@ -1704,6 +2106,9 @@ class SocialMediaContentGeneratorAgent:
                 "article_content": None,
                 "slides": None,
                 "slides_with_images": None,
+                "enable_captions": enable_captions,
+                "enabled_platforms": enabled_platforms,
+                "captions": None,
                 "status": "initialized",
                 "error": None,
             }
@@ -1736,6 +2141,7 @@ class SocialMediaContentGeneratorAgent:
                 "article_title": final_state.get("article_content", {}).get("title", "Unknown"),
                 "total_slides": len(final_state.get("slides_with_images", [])),
                 "slides": final_state.get("slides_with_images", []),
+                "captions": final_state.get("captions", {}),
                 "processing_status": final_state.get("status", "unknown"),
             }
 
@@ -1807,6 +2213,8 @@ async def generate_single_informational_image(
     color_schema: Optional[str] = None,
     image_provider: Optional[str] = None,
     image_model: Optional[str] = None,
+    enable_captions: bool = False,
+    enabled_platforms: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Generate a single informational image from an article URL.
@@ -1817,9 +2225,11 @@ async def generate_single_informational_image(
         tagline: Tagline/brand message (e.g., "daily programming tips & tricks")
         title: Custom title to override scraped article title
         extra_instructions: Additional instructions for the LLM
+        enable_captions: Whether to generate captions for social platforms (default: False)
+        enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
 
     Returns:
-        Dictionary containing image information and metadata
+        Dictionary containing image information and metadata with captions (if enabled)
     """
     try:
         # Scrape article content
@@ -1879,6 +2289,37 @@ async def generate_single_informational_image(
         if not image_info:
             raise ValueError("Failed to generate image")
 
+        # Generate captions if enabled
+        captions = {}
+        if enable_captions:
+            try:
+                if not enabled_platforms:
+                    enabled_platforms = ALL_PLATFORMS
+
+                # Create a single "slide" for caption generation
+                single_slide = {
+                    "slide_number": 1,
+                    "title": image_content.get("title", article_title),
+                    "content": image_content.get("content", ""),
+                    "image_path": image_info["path"],
+                }
+
+                llm_service_captions = LLMService(openai_api_key=openai_api_key)
+                captions = llm_service_captions.generate_captions(
+                    slides=[single_slide],
+                    article_title=image_content.get("title", article_title),
+                    enabled_platforms=enabled_platforms,
+                    username=username,
+                    tagline=tagline,
+                )
+                logger.info(f"Generated captions for {len(captions)} platforms")
+                # Save captions to JSON
+                if captions:
+                    save_captions_json(captions, image_folder)
+            except Exception as e:
+                logger.warning(f"Failed to generate captions: {str(e)}")
+                captions = {}
+
         return {
             "status": "success",
             "url": url,
@@ -1890,6 +2331,7 @@ async def generate_single_informational_image(
             "image_path": image_info["path"],
             "image_filename": image_info["filename"],
             "image_relative_path": image_info["relative_path"],
+            "captions": captions,
         }
 
     except Exception as e:
@@ -1909,6 +2351,8 @@ async def generate_infographic_from_prompt(
     extra_instructions: Optional[str] = None,
     image_provider: Optional[str] = None,
     image_model: Optional[str] = None,
+    enable_captions: bool = False,
+    enabled_platforms: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Generate an infographic from a user text prompt.
@@ -1921,9 +2365,11 @@ async def generate_infographic_from_prompt(
         background_info: Background description
         color_schema: Color schema description
         extra_instructions: Additional instructions for the LLM
+        enable_captions: Whether to generate captions for social platforms (default: False)
+        enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
 
     Returns:
-        Dictionary containing infographic information and metadata
+        Dictionary containing infographic information and metadata with captions (if enabled)
     """
     try:
         # Create output folder based on prompt
@@ -1975,6 +2421,37 @@ async def generate_infographic_from_prompt(
         if not image_info:
             raise ValueError("Failed to generate image")
 
+        # Generate captions if enabled
+        captions = {}
+        if enable_captions:
+            try:
+                if not enabled_platforms:
+                    enabled_platforms = ALL_PLATFORMS
+
+                # Create a single "slide" for caption generation
+                single_slide = {
+                    "slide_number": 1,
+                    "title": infographic_content.get("title", ""),
+                    "content": infographic_content.get("content", ""),
+                    "image_path": image_info["path"],
+                }
+
+                llm_service_captions = LLMService(openai_api_key=openai_api_key)
+                captions = llm_service_captions.generate_captions(
+                    slides=[single_slide],
+                    article_title=infographic_content.get("title", user_prompt),
+                    enabled_platforms=enabled_platforms,
+                    username=username,
+                    tagline=tagline,
+                )
+                logger.info(f"Generated captions for {len(captions)} platforms")
+                # Save captions to JSON
+                if captions:
+                    save_captions_json(captions, infographic_folder)
+            except Exception as e:
+                logger.warning(f"Failed to generate captions: {str(e)}")
+                captions = {}
+
         return {
             "status": "success",
             "prompt": user_prompt,
@@ -1985,6 +2462,7 @@ async def generate_infographic_from_prompt(
             "image_path": image_info["path"],
             "image_filename": image_info["filename"],
             "image_relative_path": image_info["relative_path"],
+            "captions": captions,
         }
 
     except Exception as e:
@@ -2005,6 +2483,8 @@ async def generate_carousel_from_prompt(
     extra_instructions: Optional[str] = None,
     image_provider: Optional[str] = None,
     image_model: Optional[str] = None,
+    enable_captions: bool = False,
+    enabled_platforms: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Generate a carousel post from a user text prompt.
@@ -2020,9 +2500,11 @@ async def generate_carousel_from_prompt(
         extra_instructions: Additional instructions for the LLM
         image_provider: Image generation provider ("openrouter" or "openai")
         image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+        enable_captions: Whether to generate captions for social platforms (default: False)
+        enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
 
     Returns:
-        Dictionary containing carousel slides with images
+        Dictionary containing carousel slides with images and captions (if enabled)
     """
     try:
         # Create output folder based on prompt
@@ -2096,12 +2578,36 @@ async def generate_carousel_from_prompt(
             else sanitized_prompt
         )
 
+        # Generate captions if enabled
+        captions = {}
+        if enable_captions:
+            try:
+                if not enabled_platforms:
+                    enabled_platforms = ALL_PLATFORMS
+
+                llm_service_captions = LLMService(openai_api_key=openai_api_key)
+                captions = llm_service_captions.generate_captions(
+                    slides=slides_with_images,
+                    article_title=carousel_title,
+                    enabled_platforms=enabled_platforms,
+                    username=username,
+                    tagline=tagline,
+                )
+                logger.info(f"Generated captions for {len(captions)} platforms")
+                # Save captions to JSON
+                if captions:
+                    save_captions_json(captions, carousel_folder)
+            except Exception as e:
+                logger.warning(f"Failed to generate captions: {str(e)}")
+                captions = {}
+
         return {
             "status": "success",
             "prompt": user_prompt,
             "article_title": carousel_title,
             "total_slides": len(slides_with_images),
             "slides": slides_with_images,
+            "captions": captions,
             "processing_status": "completed",
         }
 
@@ -2122,6 +2628,8 @@ async def generate_infographic_with_reference_image(
     color_schema: Optional[str] = None,
     image_provider: Optional[str] = None,
     image_model: Optional[str] = None,
+    enable_captions: bool = False,
+    enabled_platforms: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Generate an infographic from a user text prompt using a reference image as design guide.
@@ -2134,9 +2642,11 @@ async def generate_infographic_with_reference_image(
         font_name: Font name for the infographic
         background_info: Background description
         color_schema: Color schema description
+        enable_captions: Whether to generate captions for social platforms (default: False)
+        enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
 
     Returns:
-        Dictionary containing infographic information and metadata
+        Dictionary containing infographic information and metadata with captions (if enabled)
     """
     try:
         # Convert image to base64
@@ -2202,6 +2712,37 @@ NOTE: The reference image will define all design elements. Just ensure the above
         if not image_info:
             raise ValueError("Failed to generate image")
 
+        # Generate captions if enabled
+        captions = {}
+        if enable_captions:
+            try:
+                if not enabled_platforms:
+                    enabled_platforms = ALL_PLATFORMS
+
+                # Create a single "slide" for caption generation
+                single_slide = {
+                    "slide_number": 1,
+                    "title": infographic_content.get("title", ""),
+                    "content": infographic_content.get("content", ""),
+                    "image_path": image_info["path"],
+                }
+
+                llm_service_captions = LLMService(openai_api_key=openai_api_key)
+                captions = llm_service_captions.generate_captions(
+                    slides=[single_slide],
+                    article_title=infographic_content.get("title", user_prompt),
+                    enabled_platforms=enabled_platforms,
+                    username=username,
+                    tagline=tagline,
+                )
+                logger.info(f"Generated captions for {len(captions)} platforms")
+                # Save captions to JSON
+                if captions:
+                    save_captions_json(captions, infographic_folder)
+            except Exception as e:
+                logger.warning(f"Failed to generate captions: {str(e)}")
+                captions = {}
+
         return {
             "status": "success",
             "prompt": user_prompt,
@@ -2212,6 +2753,7 @@ NOTE: The reference image will define all design elements. Just ensure the above
             "image_path": image_info["path"],
             "image_filename": image_info["filename"],
             "image_relative_path": image_info["relative_path"],
+            "captions": captions,
         }
 
     except Exception as e:

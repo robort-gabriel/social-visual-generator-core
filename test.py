@@ -26,6 +26,15 @@ from social_visual_generator import (
     generate_infographic_with_reference_image,
     create_agent,
 )
+from social_visual_generator.agent import (
+    ALL_PLATFORMS,
+    FACEBOOK_GROUP,
+    FACEBOOK_PAGE,
+    INSTAGRAM,
+    LINKEDIN,
+    PINTEREST,
+    REDDIT,
+)
 
 
 async def test_infographic_from_prompt():
@@ -45,7 +54,15 @@ async def test_infographic_from_prompt():
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
 
+    # Caption generation option
+    enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
+    enabled_platforms = None
+    if enable_captions:
+        enabled_platforms = select_platforms()
+
     print(f"\n📝 Generating infographic for: '{prompt}'")
+    if enable_captions:
+        print("   (with caption generation)")
     print("⏳ This may take 30-60 seconds...\n")
 
     try:
@@ -56,12 +73,19 @@ async def test_infographic_from_prompt():
             font_name="Inter",
             background_info="Dark background #101010",
             color_schema="White text with cyan accents",
+            enable_captions=enable_captions,
+            enabled_platforms=enabled_platforms,
         )
 
         print("\n✅ Success!")
         print(f"   Type: {result.get('type')}")
         print(f"   Title: {result.get('title', 'N/A')}")
         print(f"   Image saved to: {result.get('image_path', 'N/A')}")
+
+        # Show captions if generated
+        captions = result.get("captions", {})
+        if captions:
+            print(f"\n📝 Generated {len(captions)} captions (saved to JSON)")
 
     except Exception as e:
         print(f"\n❌ Error: {e}")
@@ -85,6 +109,12 @@ async def test_carousel_from_prompt():
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
 
+    # Caption generation option
+    enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
+    enabled_platforms = None
+    if enable_captions:
+        enabled_platforms = select_platforms()
+
     try:
         max_slides = int(max_slides)
     except ValueError:
@@ -92,6 +122,8 @@ async def test_carousel_from_prompt():
 
     print(f"\n📝 Generating carousel for: '{prompt}'")
     print(f"   Slides: {max_slides}")
+    if enable_captions:
+        print("   (with caption generation)")
     print("⏳ This may take 2-5 minutes...\n")
 
     try:
@@ -100,6 +132,8 @@ async def test_carousel_from_prompt():
             max_slides=max_slides,
             username=username,
             tagline=tagline,
+            enable_captions=enable_captions,
+            enabled_platforms=enabled_platforms,
         )
 
         print("\n✅ Success!")
@@ -110,6 +144,11 @@ async def test_carousel_from_prompt():
             for slide in result.get("slides", []):
                 print(f"   Slide {slide.get('slide_number')}: {slide.get('title', 'N/A')[:50]}")
                 print(f"      Image: {slide.get('image_path', 'N/A')}")
+
+        # Show captions if generated
+        captions = result.get("captions", {})
+        if captions:
+            print(f"\n📝 Generated {len(captions)} captions (saved to JSON)")
 
     except Exception as e:
         print(f"\n❌ Error: {e}")
@@ -135,7 +174,15 @@ async def test_single_image():
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
 
+    # Caption generation option
+    enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
+    enabled_platforms = None
+    if enable_captions:
+        enabled_platforms = select_platforms()
+
     print(f"\n📝 Generating image from: {url}")
+    if enable_captions:
+        print("   (with caption generation)")
     print("⏳ This may take 30-60 seconds...\n")
 
     try:
@@ -143,11 +190,18 @@ async def test_single_image():
             url=url,
             username=username,
             tagline=tagline,
+            enable_captions=enable_captions,
+            enabled_platforms=enabled_platforms,
         )
 
         print("\n✅ Success!")
         print(f"   Title: {result.get('title', 'N/A')[:50]}")
         print(f"   Image saved to: {result.get('image_path', 'N/A')}")
+
+        # Show captions if generated
+        captions = result.get("captions", {})
+        if captions:
+            print(f"\n📝 Generated {len(captions)} captions (saved to JSON)")
 
     except Exception as e:
         print(f"\n❌ Error: {e}")
@@ -176,7 +230,15 @@ async def test_infographic_with_reference():
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
 
+    # Caption generation option
+    enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
+    enabled_platforms = None
+    if enable_captions:
+        enabled_platforms = select_platforms()
+
     print(f"\n📝 Generating infographic with reference image...")
+    if enable_captions:
+        print("   (with caption generation)")
     print("⏳ This may take 30-60 seconds...\n")
 
     try:
@@ -190,12 +252,19 @@ async def test_infographic_with_reference():
             tagline=tagline,
             image_provider="openai",
             image_model="gpt-image-1.5",
+            enable_captions=enable_captions,
+            enabled_platforms=enabled_platforms,
         )
 
         print("\n✅ Success!")
         print(f"   Type: {result.get('type')}")
         print(f"   Title: {result.get('title', 'N/A')[:50]}")
         print(f"   Image saved to: {result.get('image_path', 'N/A')}")
+
+        # Show captions if generated
+        captions = result.get("captions", {})
+        if captions:
+            print(f"\n📝 Generated {len(captions)} captions (saved to JSON)")
 
     except Exception as e:
         print(f"\n❌ Error: {e}")
@@ -223,6 +292,12 @@ async def test_agent_process():
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
 
+    # Caption generation option
+    enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
+    enabled_platforms = None
+    if enable_captions:
+        enabled_platforms = select_platforms()
+
     try:
         max_slides = int(max_slides)
     except ValueError:
@@ -230,6 +305,8 @@ async def test_agent_process():
 
     print(f"\n📝 Processing article from: {url}")
     print(f"   Slides: {max_slides}")
+    if enable_captions:
+        print("   (with caption generation)")
     print("⏳ This may take 2-5 minutes...\n")
 
     try:
@@ -239,6 +316,8 @@ async def test_agent_process():
             max_slides=max_slides,
             username=username,
             tagline=tagline,
+            enable_captions=enable_captions,
+            enabled_platforms=enabled_platforms,
         )
 
         print("\n✅ Success!")
@@ -250,11 +329,51 @@ async def test_agent_process():
             for slide in result.get("slides", [])[:3]:  # Show first 3
                 print(f"   Slide {slide.get('slide_number')}: {slide.get('title', 'N/A')[:50]}")
 
+        # Show captions if generated
+        captions = result.get("captions", {})
+        if captions:
+            print(f"\n📝 Generated {len(captions)} captions (saved to JSON)")
+
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
 
         traceback.print_exc()
+
+
+def select_platforms():
+    """Interactive platform selection for caption generation."""
+    print("\n📱 Available platforms for caption generation:")
+    print("  1. Facebook Group")
+    print("  2. Facebook Page")
+    print("  3. Instagram")
+    print("  4. LinkedIn")
+    print("  5. Pinterest")
+    print("  6. Reddit")
+    print("  A. All platforms")
+    print()
+
+    platform_map = {
+        "1": FACEBOOK_GROUP,
+        "2": FACEBOOK_PAGE,
+        "3": INSTAGRAM,
+        "4": LINKEDIN,
+        "5": PINTEREST,
+        "6": REDDIT,
+    }
+
+    selection = input("Select platforms (e.g., '1,3,4' or 'A' for all): ").strip().upper()
+
+    if selection == "A" or not selection:
+        return ALL_PLATFORMS
+
+    selected = []
+    for choice in selection.split(","):
+        choice = choice.strip()
+        if choice in platform_map:
+            selected.append(platform_map[choice])
+
+    return selected if selected else ALL_PLATFORMS
 
 
 def show_menu():
