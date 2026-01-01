@@ -35,6 +35,7 @@ import time
 import os
 import base64
 import traceback
+from functools import partial
 from typing import TypedDict, Annotated, List, Optional, Dict, Any, Literal
 from urllib.parse import urlparse
 from pathlib import Path
@@ -1806,61 +1807,107 @@ async def generate_slides_node(
 async def generate_images_node(
     state: SocialMediaContentState,
 ) -> SocialMediaContentState:
-    """Generate images for each carousel slide."""
+    """Generate images for each carousel slide in background threads to avoid blocking."""
     try:
         print("\n" + "=" * 80)
-        print("🎨 NODE: generate_images_node - Generating carousel images")
+        print("🎨 NODE: generate_images_node - Generating carousel images (background)")
         print("=" * 80)
-        logger.info("Generating images for carousel slides")
+        logger.info("Generating images for carousel slides in background threads")
 
         slides = state.get("slides", [])
         output_folder = state.get("output_folder")
-        slides_with_images = []
 
         if not output_folder:
             logger.error("Output folder not set")
             return {**state, "status": "error", "error": "Output folder not set"}
 
-        for slide in slides:
+        if not slides:
+            logger.warning("No slides to generate images for")
+            return {
+                **state,
+                "slides_with_images": [],
+                "status": "images_generated",
+            }
+
+        # Get image generation parameters
+        image_provider = state.get("image_provider") or IMAGE_PROVIDER
+        image_model = state.get("image_model") or IMAGE_MODEL
+        openai_api_key = state.get("openai_api_key")
+        openrouter_api_key = state.get("openrouter_api_key")
+
+        # Helper function to generate a single image in a background thread
+        async def generate_single_image(
+            slide: Dict[str, Any],
+        ) -> tuple[int, Optional[Dict[str, str]]]:
+            """Generate image for a single slide in a background thread."""
             slide_number = slide.get("slide_number", 0)
             image_prompt = slide.get("image_prompt", "")
 
-            print(f"Generating image for slide {slide_number}...")
+            logger.info(f"Starting background image generation for slide {slide_number}...")
 
-            # Generate image
-            image_provider = state.get("image_provider") or IMAGE_PROVIDER
-            image_model = state.get("image_model") or IMAGE_MODEL
-            openai_api_key = state.get("openai_api_key")
-            openrouter_api_key = state.get("openrouter_api_key")
-            image_info = generate_carousel_image(
-                image_prompt,
-                slide_number,
-                output_folder,
-                openai_api_key=openai_api_key,
-                openrouter_api_key=openrouter_api_key,
-                provider=image_provider,
-                model=image_model,
+            # Run blocking image generation in a background thread
+            # This prevents blocking the event loop
+            image_info = await asyncio.to_thread(
+                partial(
+                    generate_carousel_image,
+                    prompt=image_prompt,
+                    slide_number=slide_number,
+                    output_folder=output_folder,
+                    openai_api_key=openai_api_key,
+                    openrouter_api_key=openrouter_api_key,
+                    provider=image_provider,
+                    model=image_model,
+                )
             )
 
-            # Add image info to slide
+            return slide_number, image_info
+
+        # Generate all images concurrently in background threads
+        print(f"🚀 Generating {len(slides)} images concurrently in background threads...")
+
+        # Create tasks for all image generations
+        tasks = [generate_single_image(slide) for slide in slides]
+
+        # Wait for all image generations to complete concurrently
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results and maintain slide order
+        slides_with_images = []
+        for i, result in enumerate(results):
+            slide = slides[i]
             slide_with_image = {**slide}
-            if image_info:
-                slide_with_image["image_path"] = image_info["path"]
-                slide_with_image["image_filename"] = image_info["filename"]
-                slide_with_image["image_relative_path"] = image_info["relative_path"]
-                print(f"✅ Image generated and saved for slide {slide_number}")
-            else:
+
+            if isinstance(result, Exception):
+                # Handle exceptions from individual image generations
+                logger.error(
+                    f"Error generating image for slide {slide.get('slide_number', i)}: {result}"
+                )
                 slide_with_image["image_path"] = None
                 slide_with_image["image_filename"] = None
                 slide_with_image["image_relative_path"] = None
-                print(f"⚠️  Failed to generate image for slide {slide_number}")
+                print(
+                    f"⚠️  Failed to generate image for slide {slide.get('slide_number', i)}: {result}"
+                )
+            else:
+                slide_number, image_info = result
+                if image_info:
+                    slide_with_image["image_path"] = image_info["path"]
+                    slide_with_image["image_filename"] = image_info["filename"]
+                    slide_with_image["image_relative_path"] = image_info["relative_path"]
+                    print(f"✅ Image generated and saved for slide {slide_number}")
+                else:
+                    slide_with_image["image_path"] = None
+                    slide_with_image["image_filename"] = None
+                    slide_with_image["image_relative_path"] = None
+                    print(f"⚠️  Failed to generate image for slide {slide_number}")
 
             slides_with_images.append(slide_with_image)
 
-            # Small delay between image generations
-            await asyncio.sleep(2)
-
         print(f"✅ Completed image generation for {len(slides_with_images)} slides")
+        logger.info(
+            f"Successfully generated images for {len([s for s in slides_with_images if s.get('image_path')])} out of {len(slides_with_images)} slides"
+        )
+
         return {
             **state,
             "slides_with_images": slides_with_images,
@@ -1868,7 +1915,7 @@ async def generate_images_node(
         }
     except Exception as e:
         print(f"❌ Error in generate_images_node: {str(e)}")
-        logger.error(f"Error in generate_images_node: {str(e)}")
+        logger.error(f"Error in generate_images_node: {str(e)}", exc_info=True)
         return {**state, "status": "error", "error": str(e)}
 
 
@@ -2271,19 +2318,24 @@ async def generate_single_informational_image(
 
         # Generate the image
         image_prompt = image_content.get("image_prompt", "")
-        logger.info("Generating informational image...")
+        logger.info("Generating informational image in background thread...")
 
         image_provider_param = image_provider or IMAGE_PROVIDER
         image_model_param = image_model or IMAGE_MODEL
-        image_info = generate_carousel_image(
-            image_prompt,
-            1,
-            image_folder,
-            openai_api_key=openai_api_key,
-            openrouter_api_key=openrouter_api_key,
-            orientation="square",
-            provider=image_provider_param,
-            model=image_model_param,
+        # Run blocking image generation in a background thread to avoid blocking event loop
+        image_info = await asyncio.to_thread(
+            partial(
+                generate_carousel_image,
+                prompt=image_prompt,
+                slide_number=1,
+                output_folder=image_folder,
+                openai_api_key=openai_api_key,
+                openrouter_api_key=openrouter_api_key,
+                orientation="square",
+                reference_image_base64=None,
+                provider=image_provider_param,
+                model=image_model_param,
+            )
         )
 
         if not image_info:
@@ -2403,19 +2455,26 @@ async def generate_infographic_from_prompt(
         # Generate the image
         image_prompt = infographic_content.get("image_prompt", "")
         infographic_type = infographic_content.get("type", "unknown")
-        logger.info(f"Generating infographic image (type: {infographic_type})...")
+        logger.info(
+            f"Generating infographic image (type: {infographic_type}) in background thread..."
+        )
 
         image_provider_param = image_provider or IMAGE_PROVIDER
         image_model_param = image_model or IMAGE_MODEL
-        image_info = generate_carousel_image(
-            image_prompt,
-            1,
-            infographic_folder,
-            openai_api_key=openai_api_key,
-            openrouter_api_key=openrouter_api_key,
-            orientation="square",
-            provider=image_provider_param,
-            model=image_model_param,
+        # Run blocking image generation in a background thread to avoid blocking event loop
+        image_info = await asyncio.to_thread(
+            partial(
+                generate_carousel_image,
+                prompt=image_prompt,
+                slide_number=1,
+                output_folder=infographic_folder,
+                openai_api_key=openai_api_key,
+                openrouter_api_key=openrouter_api_key,
+                orientation="square",
+                reference_image_base64=None,
+                provider=image_provider_param,
+                model=image_model_param,
+            )
         )
 
         if not image_info:
@@ -2536,31 +2595,58 @@ async def generate_carousel_from_prompt(
             extra_instructions=extra_instructions,
         )
 
-        # Generate images for each slide
+        # Generate images for each slide concurrently in background threads
         image_provider_param = image_provider or IMAGE_PROVIDER
         image_model_param = image_model or IMAGE_MODEL
-        slides_with_images = []
 
-        for slide in carousel_slides:
+        # Helper function to generate a single image in a background thread
+        async def generate_single_slide_image(
+            slide: Dict[str, Any],
+        ) -> tuple[Dict[str, Any], Optional[Dict[str, str]]]:
+            """Generate image for a single slide in a background thread."""
             slide_number = slide.get("slide_number", 0)
             image_prompt = slide.get("image_prompt", "")
             title = slide.get("title", "")
 
-            logger.info(f"Generating image for slide {slide_number}: {title[:50]}...")
-
-            image_info = generate_carousel_image(
-                image_prompt,
-                slide_number,
-                carousel_folder,
-                openai_api_key=openai_api_key,
-                openrouter_api_key=openrouter_api_key,
-                orientation="square",
-                provider=image_provider_param,
-                model=image_model_param,
+            logger.info(
+                f"Starting background image generation for slide {slide_number}: {title[:50]}..."
             )
 
+            # Run blocking image generation in a background thread
+            image_info = await asyncio.to_thread(
+                partial(
+                    generate_carousel_image,
+                    prompt=image_prompt,
+                    slide_number=slide_number,
+                    output_folder=carousel_folder,
+                    openai_api_key=openai_api_key,
+                    openrouter_api_key=openrouter_api_key,
+                    orientation="square",
+                    reference_image_base64=None,
+                    provider=image_provider_param,
+                    model=image_model_param,
+                )
+            )
+
+            return slide, image_info
+
+        # Generate all images concurrently
+        logger.info(
+            f"Generating {len(carousel_slides)} images concurrently in background threads..."
+        )
+        tasks = [generate_single_slide_image(slide) for slide in carousel_slides]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        slides_with_images = []
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Error generating slide image: {result}")
+                continue
+
+            slide, image_info = result
             if not image_info:
-                logger.warning(f"Failed to generate image for slide {slide_number}")
+                logger.warning(f"Failed to generate image for slide {slide.get('slide_number', 0)}")
                 continue
 
             slide["image_path"] = image_info["path"]
@@ -2693,20 +2779,26 @@ NOTE: The reference image will define all design elements. Just ensure the above
 
         # Generate the image with reference
         infographic_type = infographic_content.get("type", "unknown")
-        logger.info(f"Generating infographic image with reference (type: {infographic_type})...")
+        logger.info(
+            f"Generating infographic image with reference (type: {infographic_type}) in background thread..."
+        )
 
         image_provider_param = image_provider or IMAGE_PROVIDER
         image_model_param = image_model or IMAGE_MODEL
-        image_info = generate_carousel_image(
-            enhanced_prompt,
-            1,
-            infographic_folder,
-            openai_api_key=openai_api_key,
-            openrouter_api_key=openrouter_api_key,
-            orientation="square",
-            reference_image_base64=reference_image_base64,
-            provider=image_provider_param,
-            model=image_model_param,
+        # Run blocking image generation in a background thread to avoid blocking event loop
+        image_info = await asyncio.to_thread(
+            partial(
+                generate_carousel_image,
+                prompt=enhanced_prompt,
+                slide_number=1,
+                output_folder=infographic_folder,
+                openai_api_key=openai_api_key,
+                openrouter_api_key=openrouter_api_key,
+                orientation="square",
+                reference_image_base64=reference_image_base64,
+                provider=image_provider_param,
+                model=image_model_param,
+            )
         )
 
         if not image_info:
