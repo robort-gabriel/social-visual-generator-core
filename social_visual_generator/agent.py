@@ -100,6 +100,7 @@ class SocialMediaContentState(TypedDict):
 
     messages: Annotated[List, lambda x, y: x + y]
     url: str
+    article_text: Optional[str]  # Article text content (alternative to URL)
     max_slides: int
     username: Optional[str]  # Social media username (e.g., "@robots")
     tagline: Optional[str]  # Tagline/brand message (e.g., "daily programming tips & tricks")
@@ -1765,6 +1766,70 @@ async def scrape_article_node(
         return {**state, "status": "error", "error": str(e)}
 
 
+async def process_text_node(
+    state: SocialMediaContentState,
+) -> SocialMediaContentState:
+    """Process article text content (alternative to scraping from URL)."""
+    try:
+        print("\n" + "=" * 80)
+        print("📄 NODE: process_text_node - Processing article text")
+        print("=" * 80)
+        
+        # Get text from state (either from 'article_text' or 'url' field if it's actually text)
+        article_text = state.get("article_text") or state.get("url", "")
+        custom_title = state.get("title")
+
+        if not article_text or not article_text.strip():
+            print("❌ No text content provided")
+            return {
+                **state,
+                "status": "error",
+                "error": "No article text content provided",
+            }
+
+        logger.info(f"Processing article text (length: {len(article_text)} chars)")
+
+        # Convert text to article content format
+        article_content = text_to_article_content(article_text, title=custom_title)
+
+        if not article_content or not article_content.get("fullText"):
+            print("❌ Failed to process text content")
+            return {
+                **state,
+                "status": "error",
+                "error": "Failed to process text content",
+            }
+
+        # Create output folder based on article title
+        article_title = article_content.get("title", "article_from_text")
+        sanitized_title = sanitize_filename(article_title)
+
+        # Use current working directory or environment variable for output
+        output_base = os.getenv("OUTPUT_DIR", None)
+        if output_base:
+            base_output_dir = Path(output_base)
+        else:
+            base_output_dir = Path.cwd() / "output"
+
+        # Create a folder for this social media content
+        content_folder = base_output_dir / sanitized_title
+        content_folder.mkdir(parents=True, exist_ok=True)
+
+        logger.info(f"Created output folder: {content_folder}")
+
+        print(f"✅ Successfully processed article text: {article_content.get('title')}")
+        return {
+            **state,
+            "article_content": article_content,
+            "output_folder": content_folder,
+            "status": "scraped",  # Use same status as scraped for compatibility
+        }
+    except Exception as e:
+        print(f"❌ Error in process_text_node: {str(e)}")
+        logger.error(f"Error in process_text_node: {str(e)}")
+        return {**state, "status": "error", "error": str(e)}
+
+
 async def generate_slides_node(
     state: SocialMediaContentState,
 ) -> SocialMediaContentState:
@@ -2001,7 +2066,14 @@ async def agent_node(state: SocialMediaContentState) -> SocialMediaContentState:
         current_status = state.get("status", "initialized")
 
         if current_status == "initialized":
-            return await scrape_article_node(state)
+            # Check if we have text input instead of URL
+            article_text = state.get("article_text")
+            if article_text:
+                # Process text instead of scraping from URL
+                return await process_text_node(state)
+            else:
+                # Normal URL scraping flow
+                return await scrape_article_node(state)
 
         elif current_status == "scraped":
             return await generate_slides_node(state)
@@ -2196,6 +2268,116 @@ class SocialMediaContentGeneratorAgent:
             logger.error(f"Error processing social media content request: {str(e)}")
             raise
 
+    async def process_from_text(
+        self,
+        article_text: str,
+        max_slides: int = 10,
+        username: Optional[str] = None,
+        tagline: Optional[str] = None,
+        title: Optional[str] = None,
+        extra_instructions: Optional[str] = None,
+        font_name: Optional[str] = None,
+        background_info: Optional[str] = None,
+        color_schema: Optional[str] = None,
+        image_provider: Optional[str] = None,
+        image_model: Optional[str] = None,
+        enable_captions: bool = False,
+        enabled_platforms: Optional[List[str]] = None,
+        thread_id: str = "default",
+    ) -> Dict[str, Any]:
+        """
+        Process article text and generate social media content (carousel post).
+
+        Args:
+            article_text: Article text content to process
+            max_slides: Maximum number of slides to generate (default: 10)
+            username: Social media username (e.g., "@robots")
+            tagline: Tagline/brand message (e.g., "daily programming tips & tricks")
+            title: Custom title to override extracted article title
+            extra_instructions: Additional instructions for the LLM
+            font_name: Font name for slides
+            background_info: Background description
+            color_schema: Color schema description
+            image_provider: Image generation provider ("openrouter" or "openai")
+            image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+            enable_captions: Whether to generate captions for social platforms (default: False)
+            enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
+            thread_id: Thread ID for conversation tracking
+
+        Returns:
+            Dictionary containing carousel slides with images and captions (if enabled)
+        """
+        try:
+            if not article_text or not article_text.strip():
+                raise ValueError("Article text must be provided")
+
+            # Default to all platforms if enabled but none specified
+            if enable_captions and not enabled_platforms:
+                enabled_platforms = ALL_PLATFORMS
+
+            initial_state = {
+                "messages": [],
+                "url": "",  # Empty URL when using text
+                "article_text": article_text,
+                "max_slides": max_slides,
+                "username": username,
+                "tagline": tagline,
+                "title": title,
+                "extra_instructions": extra_instructions,
+                "font_name": font_name,
+                "background_info": background_info,
+                "color_schema": color_schema,
+                "image_provider": image_provider,
+                "image_model": image_model,
+                "openai_api_key": self.openai_api_key,
+                "openrouter_api_key": self.openrouter_api_key,
+                "output_folder": None,
+                "article_content": None,
+                "slides": None,
+                "slides_with_images": None,
+                "enable_captions": enable_captions,
+                "enabled_platforms": enabled_platforms,
+                "captions": None,
+                "status": "initialized",
+                "error": None,
+            }
+
+            print("\n" + "=" * 80)
+            print("🚀 Starting Social Media Content Generator Agent Workflow (from text)")
+            print("=" * 80)
+            config = {"configurable": {"thread_id": thread_id}}
+            result = None
+
+            async for event in self.graph.astream(initial_state, config):
+                result = event
+                if "agent" in event:
+                    status = event["agent"].get("status", "processing")
+                    logger.info(f"Agent status: {status}")
+
+            print("\n" + "=" * 80)
+            print("✅ Workflow completed successfully!")
+            print("=" * 80)
+
+            final_state = result.get("agent", initial_state) if result else initial_state
+
+            if final_state.get("status") == "error":
+                error_msg = final_state.get("error", "Unknown error occurred")
+                raise ValueError(f"Agent processing failed: {error_msg}")
+
+            return {
+                "status": "success",
+                "url": None,  # No URL for text input
+                "article_title": final_state.get("article_content", {}).get("title", "Unknown"),
+                "total_slides": len(final_state.get("slides_with_images", [])),
+                "slides": final_state.get("slides_with_images", []),
+                "captions": final_state.get("captions", {}),
+                "processing_status": final_state.get("status", "unknown"),
+            }
+
+        except Exception as e:
+            logger.error(f"Error processing social media content from text: {str(e)}")
+            raise
+
 
 # ============================================================================
 # Factory Function
@@ -2214,6 +2396,75 @@ def create_agent(
 # ============================================================================
 # Utility Functions
 # ============================================================================
+
+
+def text_to_article_content(
+    text: str, title: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Convert plain text to article content format (same format as scrape_article_content).
+
+    Args:
+        text: Plain text content of the article
+        title: Optional title for the article (if not provided, extracts from text)
+
+    Returns:
+        Dictionary containing article title, content, and metadata in the same format
+        as scrape_article_content()
+    """
+    try:
+        if not text or not text.strip():
+            raise ValueError("Text content cannot be empty")
+
+        # Extract title from text if not provided
+        if not title:
+            # Try to find title in first few lines
+            lines = text.strip().split("\n")
+            first_line = lines[0].strip() if lines else ""
+            # Use first line if it's short and looks like a title
+            if first_line and len(first_line) < 200 and not first_line.endswith("."):
+                title = first_line
+            else:
+                # Extract first sentence or first 100 chars
+                first_sentence = text.strip().split(".")[0]
+                title = first_sentence[:100] if len(first_sentence) > 100 else first_sentence
+                if not title:
+                    title = "Article from Text"
+
+        # Split text into paragraphs
+        paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+        if not paragraphs:
+            paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
+
+        # Create content structure similar to scraped content
+        content = []
+        for para in paragraphs:
+            if para:
+                # Check if it looks like a heading (short, no period, all caps or title case)
+                if len(para) < 100 and not para.endswith(".") and (
+                    para.isupper() or para.istitle()
+                ):
+                    content.append({"tag": "h2", "text": para})
+                else:
+                    content.append({"tag": "p", "text": para})
+
+        # Join paragraphs for fullText
+        full_text = "\n\n".join(paragraphs)
+
+        article_content = {
+            "title": title,
+            "metaDescription": paragraphs[0][:200] if paragraphs else "",
+            "content": content,
+            "fullText": full_text,
+            "url": None,  # No URL for text input
+        }
+
+        logger.info(f"Converted text to article content: {title}")
+        return article_content
+
+    except Exception as e:
+        logger.error(f"Error converting text to article content: {str(e)}")
+        raise
 
 
 def sanitize_filename(text: str, max_length: int = 50) -> str:
@@ -2850,4 +3101,217 @@ NOTE: The reference image will define all design elements. Just ensure the above
 
     except Exception as e:
         logger.error(f"Error generating infographic with reference image: {str(e)}")
+        raise
+
+
+# ============================================================================
+# Text-Based Generation Functions
+# ============================================================================
+
+
+async def generate_carousel_from_text(
+    article_text: str,
+    max_slides: int = 10,
+    openai_api_key: Optional[str] = None,
+    openrouter_api_key: Optional[str] = None,
+    username: Optional[str] = None,
+    tagline: Optional[str] = None,
+    title: Optional[str] = None,
+    extra_instructions: Optional[str] = None,
+    font_name: Optional[str] = None,
+    background_info: Optional[str] = None,
+    color_schema: Optional[str] = None,
+    image_provider: Optional[str] = None,
+    image_model: Optional[str] = None,
+    enable_captions: bool = False,
+    enabled_platforms: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Generate a carousel post from article text (instead of URL).
+
+    Args:
+        article_text: Article text content to process
+        max_slides: Maximum number of slides to generate (default: 10)
+        username: Social media username (e.g., "@robots")
+        tagline: Tagline/brand message (e.g., "daily programming tips & tricks")
+        title: Custom title to override extracted article title
+        extra_instructions: Additional instructions for the LLM
+        font_name: Font name for slides
+        background_info: Background description
+        color_schema: Color schema description
+        image_provider: Image generation provider ("openrouter" or "openai")
+        image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+        enable_captions: Whether to generate captions for social platforms (default: False)
+        enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
+
+    Returns:
+        Dictionary containing carousel slides with images and captions (if enabled)
+    """
+    try:
+        agent = create_agent(
+            openai_api_key=openai_api_key, openrouter_api_key=openrouter_api_key
+        )
+        return await agent.process_from_text(
+            article_text=article_text,
+            max_slides=max_slides,
+            username=username,
+            tagline=tagline,
+            title=title,
+            extra_instructions=extra_instructions,
+            font_name=font_name,
+            background_info=background_info,
+            color_schema=color_schema,
+            image_provider=image_provider,
+            image_model=image_model,
+            enable_captions=enable_captions,
+            enabled_platforms=enabled_platforms,
+        )
+    except Exception as e:
+        logger.error(f"Error generating carousel from text: {str(e)}")
+        raise
+
+
+async def generate_single_informational_image_from_text(
+    article_text: str,
+    openai_api_key: Optional[str] = None,
+    openrouter_api_key: Optional[str] = None,
+    username: Optional[str] = None,
+    tagline: Optional[str] = None,
+    title: Optional[str] = None,
+    extra_instructions: Optional[str] = None,
+    font_name: Optional[str] = None,
+    background_info: Optional[str] = None,
+    color_schema: Optional[str] = None,
+    image_provider: Optional[str] = None,
+    image_model: Optional[str] = None,
+    enable_captions: bool = False,
+    enabled_platforms: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Generate a single informational image from article text (instead of URL).
+
+    Args:
+        article_text: Article text content to process
+        username: Social media username (e.g., "@robots")
+        tagline: Tagline/brand message (e.g., "daily programming tips & tricks")
+        title: Custom title to override extracted article title
+        extra_instructions: Additional instructions for the LLM
+        enable_captions: Whether to generate captions for social platforms (default: False)
+        enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
+
+    Returns:
+        Dictionary containing image information and metadata with captions (if enabled)
+    """
+    try:
+        if not article_text or not article_text.strip():
+            raise ValueError("Article text cannot be empty")
+
+        # Convert text to article content format
+        article_content = text_to_article_content(article_text, title=title)
+
+        if not article_content or not article_content.get("fullText"):
+            raise ValueError("Failed to process article text")
+
+        # Create output folder based on article title
+        article_title = article_content.get("title", "informational_image")
+        sanitized_title = sanitize_filename(article_title)
+
+        # Use current working directory or environment variable for output
+        output_base = os.getenv("OUTPUT_DIR", None)
+        if output_base:
+            base_output_dir = Path(output_base)
+        else:
+            base_output_dir = Path.cwd() / "output"
+
+        # Create a folder for this image
+        image_folder = base_output_dir / sanitized_title
+        image_folder.mkdir(parents=True, exist_ok=True)
+
+        logger.info(f"Created output folder: {image_folder}")
+
+        # Generate content using LLM
+        llm_service = LLMService(openai_api_key=openai_api_key)
+        image_content = llm_service.generate_single_informational_image(
+            article_content,
+            username=username,
+            tagline=tagline,
+            title=title,
+            extra_instructions=extra_instructions,
+            font_name=font_name,
+            background_info=background_info,
+            color_schema=color_schema,
+        )
+
+        # Generate the image
+        image_prompt = image_content.get("image_prompt", "")
+        logger.info("Generating informational image from text in background thread...")
+
+        image_provider_param = image_provider or IMAGE_PROVIDER
+        image_model_param = image_model or IMAGE_MODEL
+        # Run blocking image generation in a background thread to avoid blocking event loop
+        image_info = await asyncio.to_thread(
+            partial(
+                generate_carousel_image,
+                prompt=image_prompt,
+                slide_number=1,
+                output_folder=image_folder,
+                openai_api_key=openai_api_key,
+                openrouter_api_key=openrouter_api_key,
+                orientation="square",
+                reference_image_base64=None,
+                provider=image_provider_param,
+                model=image_model_param,
+            )
+        )
+
+        if not image_info:
+            raise ValueError("Failed to generate image")
+
+        # Generate captions if enabled
+        captions = {}
+        if enable_captions:
+            try:
+                if not enabled_platforms:
+                    enabled_platforms = ALL_PLATFORMS
+
+                # Create a single "slide" for caption generation
+                single_slide = {
+                    "slide_number": 1,
+                    "title": image_content.get("title", article_title),
+                    "content": image_content.get("content", ""),
+                    "image_path": image_info["path"],
+                }
+
+                llm_service_captions = LLMService(openai_api_key=openai_api_key)
+                captions = llm_service_captions.generate_captions(
+                    slides=[single_slide],
+                    article_title=image_content.get("title", article_title),
+                    enabled_platforms=enabled_platforms,
+                    username=username,
+                    tagline=tagline,
+                )
+                logger.info(f"Generated captions for {len(captions)} platforms")
+                # Save captions to JSON
+                if captions:
+                    save_captions_json(captions, image_folder)
+            except Exception as e:
+                logger.warning(f"Failed to generate captions: {str(e)}")
+                captions = {}
+
+        return {
+            "status": "success",
+            "url": None,  # No URL for text input
+            "article_title": article_title,
+            "is_list_post": image_content.get("is_list_post", False),
+            "title": image_content.get("title", ""),
+            "content": image_content.get("content", ""),
+            "image_prompt": image_prompt,
+            "image_path": image_info["path"],
+            "image_filename": image_info["filename"],
+            "image_relative_path": image_info["relative_path"],
+            "captions": captions,
+        }
+
+    except Exception as e:
+        logger.error(f"Error generating single informational image from text: {str(e)}")
         raise

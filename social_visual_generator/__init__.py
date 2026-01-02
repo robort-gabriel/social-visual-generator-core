@@ -12,10 +12,13 @@ from .agent import (
     SocialMediaContentGeneratorAgent,
     create_agent,
     generate_single_informational_image,
+    generate_single_informational_image_from_text,
     generate_infographic_from_prompt,
     generate_infographic_with_reference_image,
     generate_carousel_from_prompt,
+    generate_carousel_from_text,
     scrape_article_content,
+    text_to_article_content,
     sanitize_filename,
 )
 
@@ -23,9 +26,12 @@ __all__ = [
     "SocialMediaContentGeneratorAgent",
     "create_agent",
     "generate_single_informational_image",
+    "generate_single_informational_image_from_text",
     "generate_infographic_from_prompt",
     "generate_infographic_with_reference_image",
     "generate_carousel_from_prompt",
+    "generate_carousel_from_text",
     "scrape_article_content",
+    "text_to_article_content",
     "sanitize_filename",
 ]

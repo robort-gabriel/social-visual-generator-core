@@ -25,7 +25,9 @@ from social_visual_generator import (
     create_agent,
     generate_infographic_from_prompt,
     generate_carousel_from_prompt,
+    generate_carousel_from_text,
     generate_single_informational_image,
+    generate_single_informational_image_from_text,
     generate_infographic_with_reference_image,
 )
 from social_visual_generator.agent import (
@@ -104,6 +106,39 @@ async def generate_carousel(
     return result
 ```
 
+### Example: Generate Carousel from Text (using agent)
+
+```python
+from social_visual_generator import create_agent
+
+# Your API keys (from your config/database/etc.)
+OPENAI_API_KEY = "your-openai-key"
+OPENROUTER_API_KEY = "your-openrouter-key"  # Optional
+
+@app.post("/api/v1/generate-carousel-from-text-agent")
+async def generate_carousel_from_text_agent(
+    article_text: str, 
+    max_slides: int = 5,
+    title: str = None,
+    enable_captions: bool = False,
+    enabled_platforms: list[str] = None
+):
+    agent = create_agent(
+        openai_api_key=OPENAI_API_KEY,
+        openrouter_api_key=OPENROUTER_API_KEY,
+    )
+    result = await agent.process_from_text(
+        article_text=article_text,
+        max_slides=max_slides,
+        title=title,  # Optional: override extracted title
+        username="@test",
+        tagline="test tagline",
+        enable_captions=enable_captions,
+        enabled_platforms=enabled_platforms or ALL_PLATFORMS if enable_captions else None,
+    )
+    return result
+```
+
 ### Example: Generate Carousel from Prompt
 
 ```python
@@ -123,6 +158,66 @@ async def create_carousel(
     result = await generate_carousel_from_prompt(
         user_prompt=prompt,
         max_slides=max_slides,
+        openai_api_key=OPENAI_API_KEY,
+        openrouter_api_key=OPENROUTER_API_KEY,
+        username="@test",
+        tagline="test tagline",
+        enable_captions=enable_captions,
+        enabled_platforms=enabled_platforms or ALL_PLATFORMS if enable_captions else None,
+    )
+    return result
+```
+
+### Example: Generate Carousel from Article Text
+
+```python
+from social_visual_generator import generate_carousel_from_text
+
+# Your API keys (from your config/database/etc.)
+OPENAI_API_KEY = "your-openai-key"
+OPENROUTER_API_KEY = "your-openrouter-key"  # Optional
+
+@app.post("/api/v1/generate-carousel-from-text")
+async def create_carousel_from_text(
+    article_text: str, 
+    max_slides: int = 5,
+    title: str = None,
+    enable_captions: bool = False,
+    enabled_platforms: list[str] = None
+):
+    result = await generate_carousel_from_text(
+        article_text=article_text,
+        max_slides=max_slides,
+        title=title,  # Optional: override extracted title
+        openai_api_key=OPENAI_API_KEY,
+        openrouter_api_key=OPENROUTER_API_KEY,
+        username="@test",
+        tagline="test tagline",
+        enable_captions=enable_captions,
+        enabled_platforms=enabled_platforms or ALL_PLATFORMS if enable_captions else None,
+    )
+    return result
+```
+
+### Example: Generate Single Image from Article Text
+
+```python
+from social_visual_generator import generate_single_informational_image_from_text
+
+# Your API keys (from your config/database/etc.)
+OPENAI_API_KEY = "your-openai-key"
+OPENROUTER_API_KEY = "your-openrouter-key"  # Optional
+
+@app.post("/api/v1/generate-single-image-from-text")
+async def create_single_image_from_text(
+    article_text: str,
+    title: str = None,
+    enable_captions: bool = False,
+    enabled_platforms: list[str] = None
+):
+    result = await generate_single_informational_image_from_text(
+        article_text=article_text,
+        title=title,  # Optional: override extracted title
         openai_api_key=OPENAI_API_KEY,
         openrouter_api_key=OPENROUTER_API_KEY,
         username="@test",
@@ -233,9 +328,11 @@ All functions accept `openai_api_key` and `openrouter_api_key` parameters. All g
 |----------|-------------|-----------------|-------------------|
 | `generate_infographic_from_prompt(prompt, ..., enable_captions=False, enabled_platforms=None)` | Generate single infographic from text prompt | ✅ Yes | ✅ Yes |
 | `generate_carousel_from_prompt(prompt, max_slides, ..., enable_captions=False, enabled_platforms=None)` | Generate carousel slides from text prompt | ✅ Yes | ✅ Yes (concurrent) |
+| `generate_carousel_from_text(article_text, max_slides, ..., enable_captions=False, enabled_platforms=None)` | Generate carousel slides from article text | ✅ Yes | ✅ Yes (concurrent) |
 | `generate_single_informational_image(url, ..., enable_captions=False, enabled_platforms=None)` | Generate single image from article URL | ✅ Yes | ✅ Yes |
+| `generate_single_informational_image_from_text(article_text, ..., enable_captions=False, enabled_platforms=None)` | Generate single image from article text | ✅ Yes | ✅ Yes |
 | `generate_infographic_with_reference_image(prompt, image_bytes, ..., enable_captions=False, enabled_platforms=None)` | Generate infographic using reference image | ✅ Yes | ✅ Yes |
-| `create_agent(openai_api_key, openrouter_api_key)` | Create agent for processing URLs | ✅ Yes (via `agent.process()`) | ✅ Yes (concurrent) |
+| `create_agent(openai_api_key, openrouter_api_key)` | Create agent for processing URLs/text | ✅ Yes (via `agent.process()` or `agent.process_from_text()`) | ✅ Yes (concurrent) |
 
 **Caption Generation Parameters:**
 - `enable_captions` (bool, default: False) - Enable caption generation
