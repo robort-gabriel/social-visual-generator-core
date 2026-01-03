@@ -22,7 +22,9 @@ except ImportError:
 from social_visual_generator import (
     generate_infographic_from_prompt,
     generate_carousel_from_prompt,
+    generate_carousel_from_text,
     generate_single_informational_image,
+    generate_single_informational_image_from_text,
     generate_infographic_with_reference_image,
     create_agent,
 )
@@ -273,6 +275,165 @@ async def test_infographic_with_reference():
         traceback.print_exc()
 
 
+async def test_carousel_from_text():
+    """Test: Generate Carousel from Text"""
+    print("\n" + "=" * 60)
+    print("🧪 Generate Carousel from Text")
+    print("=" * 60)
+
+    if not os.getenv("OPENAI_API_KEY"):
+        print("❌ OPENAI_API_KEY not set in .env file")
+        return
+
+    print("\nEnter article text (press Enter twice to finish):")
+    lines = []
+    while True:
+        line = input()
+        if not line and lines:  # Empty line after content
+            break
+        if line:
+            lines.append(line)
+    
+    article_text = "\n".join(lines)
+    if not article_text.strip():
+        print("❌ Article text is required")
+        return
+
+    max_slides = input("\nMax slides (default: 5): ").strip() or "5"
+    title = input("Title (optional, press Enter to auto-extract): ").strip() or None
+    username = input("Username (default: @test): ").strip() or "@test"
+    tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
+    font_name = input("Font name (optional, e.g., 'Arial', 'Roboto'): ").strip() or None
+    background_info = input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
+    color_schema = input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    extra_instructions = input("Extra instructions (optional): ").strip() or None
+
+    # Caption generation option
+    enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
+    enabled_platforms = None
+    if enable_captions:
+        enabled_platforms = select_platforms()
+
+    try:
+        max_slides = int(max_slides)
+    except ValueError:
+        max_slides = 5
+
+    print(f"\n📝 Generating carousel from text ({len(article_text)} chars)")
+    print(f"   Slides: {max_slides}")
+    if enable_captions:
+        print("   (with caption generation)")
+    print("⏳ This may take 2-5 minutes...\n")
+
+    try:
+        result = await generate_carousel_from_text(
+            article_text=article_text,
+            max_slides=max_slides,
+            title=title,
+            username=username,
+            tagline=tagline,
+            font_name=font_name,
+            background_info=background_info,
+            color_schema=color_schema,
+            extra_instructions=extra_instructions,
+            enable_captions=enable_captions,
+            enabled_platforms=enabled_platforms,
+        )
+
+        print("\n✅ Success!")
+        print(f"   Total slides: {result.get('total_slides', 0)}")
+        print(f"   Article: {result.get('article_title', 'N/A')}")
+
+        if result.get("slides"):
+            print("\n📋 Slides generated:")
+            for slide in result.get("slides", [])[:3]:  # Show first 3
+                print(f"   Slide {slide.get('slide_number')}: {slide.get('title', 'N/A')[:50]}")
+
+        # Show captions if generated
+        captions = result.get("captions", {})
+        if captions:
+            print(f"\n📝 Generated {len(captions)} captions (saved to JSON)")
+
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        import traceback
+
+        traceback.print_exc()
+
+
+async def test_single_image_from_text():
+    """Test: Generate Single Image from Text"""
+    print("\n" + "=" * 60)
+    print("🧪 Generate Single Image from Text")
+    print("=" * 60)
+
+    if not os.getenv("OPENAI_API_KEY"):
+        print("❌ OPENAI_API_KEY not set in .env file")
+        return
+
+    print("\nEnter article text (press Enter twice to finish):")
+    lines = []
+    while True:
+        line = input()
+        if not line and lines:  # Empty line after content
+            break
+        if line:
+            lines.append(line)
+    
+    article_text = "\n".join(lines)
+    if not article_text.strip():
+        print("❌ Article text is required")
+        return
+
+    title = input("\nTitle (optional, press Enter to auto-extract): ").strip() or None
+    username = input("Username (default: @test): ").strip() or "@test"
+    tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
+    font_name = input("Font name (optional, e.g., 'Arial', 'Roboto'): ").strip() or None
+    background_info = input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
+    color_schema = input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    extra_instructions = input("Extra instructions (optional): ").strip() or None
+
+    # Caption generation option
+    enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
+    enabled_platforms = None
+    if enable_captions:
+        enabled_platforms = select_platforms()
+
+    print(f"\n📝 Generating image from text ({len(article_text)} chars)")
+    if enable_captions:
+        print("   (with caption generation)")
+    print("⏳ This may take 30-60 seconds...\n")
+
+    try:
+        result = await generate_single_informational_image_from_text(
+            article_text=article_text,
+            title=title,
+            username=username,
+            tagline=tagline,
+            font_name=font_name,
+            background_info=background_info,
+            color_schema=color_schema,
+            extra_instructions=extra_instructions,
+            enable_captions=enable_captions,
+            enabled_platforms=enabled_platforms,
+        )
+
+        print("\n✅ Success!")
+        print(f"   Title: {result.get('title', 'N/A')[:50]}")
+        print(f"   Image saved to: {result.get('image_path', 'N/A')}")
+
+        # Show captions if generated
+        captions = result.get("captions", {})
+        if captions:
+            print(f"\n📝 Generated {len(captions)} captions (saved to JSON)")
+
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        import traceback
+
+        traceback.print_exc()
+
+
 async def test_agent_process():
     """Test: Agent Process (Carousel from URL)"""
     print("\n" + "=" * 60)
@@ -316,6 +477,93 @@ async def test_agent_process():
             max_slides=max_slides,
             username=username,
             tagline=tagline,
+            enable_captions=enable_captions,
+            enabled_platforms=enabled_platforms,
+        )
+
+        print("\n✅ Success!")
+        print(f"   Total slides: {result.get('total_slides', 0)}")
+        print(f"   Article: {result.get('article_title', 'N/A')}")
+
+        if result.get("slides"):
+            print("\n📋 Slides generated:")
+            for slide in result.get("slides", [])[:3]:  # Show first 3
+                print(f"   Slide {slide.get('slide_number')}: {slide.get('title', 'N/A')[:50]}")
+
+        # Show captions if generated
+        captions = result.get("captions", {})
+        if captions:
+            print(f"\n📝 Generated {len(captions)} captions (saved to JSON)")
+
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        import traceback
+
+        traceback.print_exc()
+
+
+async def test_agent_process_from_text():
+    """Test: Agent Process from Text"""
+    print("\n" + "=" * 60)
+    print("🧪 Agent Process - Carousel from Text")
+    print("=" * 60)
+
+    if not os.getenv("OPENAI_API_KEY"):
+        print("❌ OPENAI_API_KEY not set in .env file")
+        return
+
+    print("\nEnter article text (press Enter twice to finish):")
+    lines = []
+    while True:
+        line = input()
+        if not line and lines:  # Empty line after content
+            break
+        if line:
+            lines.append(line)
+    
+    article_text = "\n".join(lines)
+    if not article_text.strip():
+        print("❌ Article text is required")
+        return
+
+    max_slides = input("\nMax slides (default: 5): ").strip() or "5"
+    title = input("Title (optional, press Enter to auto-extract): ").strip() or None
+    username = input("Username (default: @test): ").strip() or "@test"
+    tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
+    font_name = input("Font name (optional, e.g., 'Arial', 'Roboto'): ").strip() or None
+    background_info = input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
+    color_schema = input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    extra_instructions = input("Extra instructions (optional): ").strip() or None
+
+    # Caption generation option
+    enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
+    enabled_platforms = None
+    if enable_captions:
+        enabled_platforms = select_platforms()
+
+    try:
+        max_slides = int(max_slides)
+    except ValueError:
+        max_slides = 5
+
+    print(f"\n📝 Processing article from text ({len(article_text)} chars)")
+    print(f"   Slides: {max_slides}")
+    if enable_captions:
+        print("   (with caption generation)")
+    print("⏳ This may take 2-5 minutes...\n")
+
+    try:
+        agent = create_agent()
+        result = await agent.process_from_text(
+            article_text=article_text,
+            max_slides=max_slides,
+            title=title,
+            username=username,
+            tagline=tagline,
+            font_name=font_name,
+            background_info=background_info,
+            color_schema=color_schema,
+            extra_instructions=extra_instructions,
             enable_captions=enable_captions,
             enabled_platforms=enabled_platforms,
         )
@@ -387,6 +635,9 @@ def show_menu():
     print("  3. Generate Single Image from URL")
     print("  4. Generate Infographic with Reference Image")
     print("  5. Agent Process - Carousel from URL")
+    print("  6. Generate Carousel from Text")
+    print("  7. Generate Single Image from Text")
+    print("  8. Agent Process - Carousel from Text")
     print("  0. Exit")
     print()
 
@@ -395,7 +646,7 @@ async def main():
     """Main test runner"""
     while True:
         show_menu()
-        choice = input("Enter choice (0-5): ").strip()
+        choice = input("Enter choice (0-8): ").strip()
 
         if choice == "0":
             print("\n👋 Goodbye!")
@@ -410,8 +661,14 @@ async def main():
             await test_infographic_with_reference()
         elif choice == "5":
             await test_agent_process()
+        elif choice == "6":
+            await test_carousel_from_text()
+        elif choice == "7":
+            await test_single_image_from_text()
+        elif choice == "8":
+            await test_agent_process_from_text()
         else:
-            print("❌ Invalid choice. Please enter 0-5.")
+            print("❌ Invalid choice. Please enter 0-8.")
 
         input("\nPress Enter to continue...")
 

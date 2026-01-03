@@ -3196,6 +3196,11 @@ async def generate_single_informational_image_from_text(
         tagline: Tagline/brand message (e.g., "daily programming tips & tricks")
         title: Custom title to override extracted article title
         extra_instructions: Additional instructions for the LLM
+        font_name: Font name for the image (e.g., "Arial", "Roboto")
+        background_info: Background description (e.g., "dark navy gradient")
+        color_schema: Color schema description (e.g., "navy background with white and cyan accent text")
+        image_provider: Image generation provider ("openrouter" or "openai")
+        image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
         enable_captions: Whether to generate captions for social platforms (default: False)
         enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
 

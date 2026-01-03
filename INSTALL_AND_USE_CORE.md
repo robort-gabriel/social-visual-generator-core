@@ -120,6 +120,12 @@ async def generate_carousel_from_text_agent(
     article_text: str, 
     max_slides: int = 5,
     title: str = None,
+    username: str = "@test",
+    tagline: str = "test tagline",
+    font_name: str = None,
+    background_info: str = None,
+    color_schema: str = None,
+    extra_instructions: str = None,
     enable_captions: bool = False,
     enabled_platforms: list[str] = None
 ):
@@ -131,8 +137,12 @@ async def generate_carousel_from_text_agent(
         article_text=article_text,
         max_slides=max_slides,
         title=title,  # Optional: override extracted title
-        username="@test",
-        tagline="test tagline",
+        username=username,
+        tagline=tagline,
+        font_name=font_name,  # Optional: e.g., "Arial", "Roboto"
+        background_info=background_info,  # Optional: e.g., "dark navy gradient"
+        color_schema=color_schema,  # Optional: e.g., "navy background with white and cyan accent text"
+        extra_instructions=extra_instructions,  # Optional: additional LLM instructions
         enable_captions=enable_captions,
         enabled_platforms=enabled_platforms or ALL_PLATFORMS if enable_captions else None,
     )
@@ -182,6 +192,12 @@ async def create_carousel_from_text(
     article_text: str, 
     max_slides: int = 5,
     title: str = None,
+    username: str = "@test",
+    tagline: str = "test tagline",
+    font_name: str = None,
+    background_info: str = None,
+    color_schema: str = None,
+    extra_instructions: str = None,
     enable_captions: bool = False,
     enabled_platforms: list[str] = None
 ):
@@ -191,8 +207,12 @@ async def create_carousel_from_text(
         title=title,  # Optional: override extracted title
         openai_api_key=OPENAI_API_KEY,
         openrouter_api_key=OPENROUTER_API_KEY,
-        username="@test",
-        tagline="test tagline",
+        username=username,
+        tagline=tagline,
+        font_name=font_name,  # Optional: e.g., "Arial", "Roboto"
+        background_info=background_info,  # Optional: e.g., "dark navy gradient"
+        color_schema=color_schema,  # Optional: e.g., "navy background with white and cyan accent text"
+        extra_instructions=extra_instructions,  # Optional: additional LLM instructions
         enable_captions=enable_captions,
         enabled_platforms=enabled_platforms or ALL_PLATFORMS if enable_captions else None,
     )
@@ -212,6 +232,12 @@ OPENROUTER_API_KEY = "your-openrouter-key"  # Optional
 async def create_single_image_from_text(
     article_text: str,
     title: str = None,
+    username: str = "@test",
+    tagline: str = "test tagline",
+    font_name: str = None,
+    background_info: str = None,
+    color_schema: str = None,
+    extra_instructions: str = None,
     enable_captions: bool = False,
     enabled_platforms: list[str] = None
 ):
@@ -220,8 +246,12 @@ async def create_single_image_from_text(
         title=title,  # Optional: override extracted title
         openai_api_key=OPENAI_API_KEY,
         openrouter_api_key=OPENROUTER_API_KEY,
-        username="@test",
-        tagline="test tagline",
+        username=username,
+        tagline=tagline,
+        font_name=font_name,  # Optional: e.g., "Arial", "Roboto"
+        background_info=background_info,  # Optional: e.g., "dark navy gradient"
+        color_schema=color_schema,  # Optional: e.g., "navy background with white and cyan accent text"
+        extra_instructions=extra_instructions,  # Optional: additional LLM instructions
         enable_captions=enable_captions,
         enabled_platforms=enabled_platforms or ALL_PLATFORMS if enable_captions else None,
     )
