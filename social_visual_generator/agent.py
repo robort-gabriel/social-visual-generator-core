@@ -673,7 +673,24 @@ The final image should look like it was made from the same template as the refer
 
 Generate a {orientation} infographic that is visually IDENTICAL to the reference image in terms of design, layout, and style."""
         else:
-            design_instruction = f"Create a {orientation} carousel slide image: {prompt}. Make it clean, modern, and visually engaging with clear focal point. Perfect for social media carousel."
+            design_instruction = f"""Create a {orientation} carousel slide image with the following content:
+
+{prompt}
+
+CRITICAL REQUIREMENTS FOR TEXT VISIBILITY:
+- ALL text must be FULLY visible within the image boundaries - nothing should be cut off
+- Leave adequate padding/margins on ALL sides (minimum 10% margin on top, bottom, left, right)
+- No text should be truncated, partially hidden, or cut off at the edges
+- Use appropriate font sizes to ensure ALL content fits comfortably within the visible area
+- Ensure proper spacing between title and body text (at least 15% of image height between them)
+- All bullet points and list items must be COMPLETELY visible - no text should extend beyond image boundaries
+- If content is long, reduce font size rather than cutting off text
+- The entire title must be visible (if it's 2 lines, both lines must be fully visible)
+- All bullet points must be fully visible (if there are 5-6 bullets, all must be completely shown)
+- The image should be clean, modern, and visually engaging
+- Perfect for social media carousel
+
+REMEMBER: It's better to use smaller fonts or reduce content than to have any text cut off."""
 
         logger.info(f"Generating image for slide {slide_number}: {prompt}")
 
@@ -1016,13 +1033,22 @@ All slides must look like professional Canva-style carousel slides:
 - Format: Square or vertical orientation (1080x1080 or 1080x1350 aspect ratio)
 - Background: {display_background}
 - Color scheme: {display_color_schema}
-- Title: Extra large bold {display_font_name}, top portion of slide
-- Body text: Clean bullet points, highly readable, max 7 lines
+- Title: Extra large bold {display_font_name}, top portion of slide (max 2 lines, ensure it fits)
+- Body text: Clean bullet points, highly readable, max 5-6 bullet points (each max 2 lines)
+- CRITICAL: ALL text must fit within the image boundaries - ensure proper spacing and margins
+- CRITICAL: No text should be cut off at edges - leave adequate padding on all sides
+- CRITICAL: Use appropriate font sizes so all content is fully visible and readable
 - Add "Slide X of {max_slides}" in small text at top-right or bottom-right
 - Add subtle relevant icons (code symbols, laptop, lightbulb, rocket, etc.)
 - Add small "{display_username}" handle in bottom-left or bottom-right corner on every slide
 - High contrast, modern, premium feel — looks expensive
 - DO NOT include technical specifications like pixel sizes, font names, font sizes, or hex color codes in the image prompts
+
+=== CONTENT LENGTH GUIDELINES ===
+- Title: Keep under 60 characters or split into max 2 lines
+- Content: Maximum 5-6 bullet points, each bullet point max 2 lines
+- Total content should fit comfortably within the image with proper margins
+- If content is too long, prioritize the most important points
 
 === OUTPUT FORMAT ===
 Return ONLY a valid JSON array (no markdown, no explanation). Each object must have exactly these keys:
@@ -1030,9 +1056,9 @@ Return ONLY a valid JSON array (no markdown, no explanation). Each object must h
 [
   {{
     "slide_number": 1,
-    "title": "Exact title text that will appear on the image",
-    "content": "Exact body text that will appear on the image (use \\n for line breaks in bullets)",
-    "image_prompt": "Extremely detailed prompt that forces Gemini to render the exact title and content as text on the image. Include layout, colors, fonts, and all text verbatim. Do NOT include pixel sizes, font names, font sizes, or hex color codes."
+    "title": "Exact title text that will appear on the image (keep concise, max 2 lines)",
+    "content": "Exact body text that will appear on the image (use \\n for line breaks in bullets, max 5-6 bullets, each max 2 lines)",
+    "image_prompt": "Extremely detailed prompt that forces Gemini to render the exact title and content as text on the image. CRITICAL: Emphasize that ALL text must be fully visible within the image boundaries with proper margins. Include layout, colors, fonts, and all text verbatim. Explicitly state: 'Ensure all text fits within the image with adequate padding on all sides - no text should be cut off or truncated.' Do NOT include pixel sizes, font names, font sizes, or hex color codes."
   }}
 ]
 {extra_instructions_section}
@@ -1162,13 +1188,22 @@ All slides must look like professional Canva-style carousel slides:
 - Format: Square or vertical orientation (1080x1080 or 1080x1350 aspect ratio)
 - Background: {display_background}
 - Color scheme: {display_color_schema}
-- Title: Extra large bold {display_font_name}, top portion of slide
-- Body text: Clean bullet points, highly readable, max 7 lines
+- Title: Extra large bold {display_font_name}, top portion of slide (max 2 lines, ensure it fits)
+- Body text: Clean bullet points, highly readable, max 5-6 bullet points (each max 2 lines)
+- CRITICAL: ALL text must fit within the image boundaries - ensure proper spacing and margins
+- CRITICAL: No text should be cut off at edges - leave adequate padding on all sides
+- CRITICAL: Use appropriate font sizes so all content is fully visible and readable
 - Add "Slide X of {max_slides}" in small text at top-right or bottom-right
 - Add subtle relevant icons (code symbols, laptop, lightbulb, rocket, etc.)
 - Add small "{display_username}" handle in bottom-left or bottom-right corner on every slide
 - High contrast, modern, premium feel — looks expensive
 - DO NOT include technical specifications like pixel sizes, font names, font sizes, or hex color codes in the image prompts
+
+=== CONTENT LENGTH GUIDELINES ===
+- Title: Keep under 60 characters or split into max 2 lines
+- Content: Maximum 5-6 bullet points, each bullet point max 2 lines
+- Total content should fit comfortably within the image with proper margins
+- If content is too long, prioritize the most important points
 
 === OUTPUT FORMAT ===
 Return ONLY a valid JSON array (no markdown, no explanation). Each object must have exactly these keys:
@@ -1176,9 +1211,9 @@ Return ONLY a valid JSON array (no markdown, no explanation). Each object must h
 [
   {{
     "slide_number": 1,
-    "title": "Exact title text that will appear on the image",
-    "content": "Exact body text that will appear on the image (use \\n for line breaks in bullets)",
-    "image_prompt": "Extremely detailed prompt that forces Gemini to render the exact title and content as text on the image. Include layout, colors, fonts, and all text verbatim. Do NOT include pixel sizes, font names, font sizes, or hex color codes."
+    "title": "Exact title text that will appear on the image (keep concise, max 2 lines)",
+    "content": "Exact body text that will appear on the image (use \\n for line breaks in bullets, max 5-6 bullets, each max 2 lines)",
+    "image_prompt": "Extremely detailed prompt that forces Gemini to render the exact title and content as text on the image. CRITICAL: Emphasize that ALL text must be fully visible within the image boundaries with proper margins. Include layout, colors, fonts, and all text verbatim. Explicitly state: 'Ensure all text fits within the image with adequate padding on all sides - no text should be cut off or truncated.' Do NOT include pixel sizes, font names, font sizes, or hex color codes."
   }}
 ]
 {extra_instructions_section}
@@ -1290,20 +1325,30 @@ The image must look like a professional informational graphic:
 - Format: Square or vertical orientation (1080x1080 or 1080x1350 aspect ratio)
 - Background: {display_background}
 - Color scheme: {display_color_schema}
-- Title: Extra large bold {display_font_name}, top portion of image
+- Title: Extra large bold {display_font_name}, top portion of image (max 2 lines, ensure it fits)
 - Content: Clean, organized layout with clear hierarchy
+- CRITICAL: ALL text must fit within the image boundaries - ensure proper spacing and margins
+- CRITICAL: No text should be cut off at edges - leave adequate padding on all sides
+- CRITICAL: Use appropriate font sizes so all content is fully visible and readable
+- For lists: Display all items clearly with proper spacing between items
 - Add small "{display_username}" handle in bottom-left or bottom-right corner
 - High contrast, modern, premium feel — looks expensive
 - DO NOT include technical specifications like pixel sizes, font names, font sizes, or hex color codes in the image prompts
+
+=== CONTENT LENGTH GUIDELINES ===
+- Title: Keep under 60 characters or split into max 2 lines
+- For lists: Maximum 10 items, each item max 2 lines
+- For summaries: Maximum 5-7 bullet points, each max 2 lines
+- Total content should fit comfortably within the image with proper margins
 
 === OUTPUT FORMAT ===
 Return ONLY a valid JSON object (no markdown, no explanation) with exactly these keys:
 
 {{
   "is_list_post": true/false,
-  "title": "Exact title text that will appear on the image",
-  "content": "Exact content that will appear on the image (use \\n for line breaks, numbered or bulleted format)",
-  "image_prompt": "Extremely detailed prompt that forces Gemini to render the exact title and content as text on the image. Include layout, colors, fonts, and all text verbatim. Do NOT include pixel sizes, font names, font sizes, or hex color codes."
+  "title": "Exact title text that will appear on the image (keep concise, max 2 lines)",
+  "content": "Exact content that will appear on the image (use \\n for line breaks, numbered or bulleted format, ensure all items fit)",
+  "image_prompt": "Extremely detailed prompt that forces Gemini to render the exact title and content as text on the image. CRITICAL: Emphasize that ALL text must be fully visible within the image boundaries with proper margins. Include layout, colors, fonts, and all text verbatim. Explicitly state: 'Ensure all text fits within the image with adequate padding on all sides - no text should be cut off or truncated. All list items/summary points must be fully visible.' Do NOT include pixel sizes, font names, font sizes, or hex color codes."
 }}
 {extra_instructions_section}
 Article Title: {title}
@@ -1418,22 +1463,31 @@ The image must look like a professional informational graphic:
 - Format: Square or vertical orientation (1080x1080 or 1080x1350 aspect ratio)
 - Background: {display_background}
 - Color scheme: {display_color_schema}
-- Title: Extra large bold {display_font_name}, top portion of image
+- Title: Extra large bold {display_font_name}, top portion of image (max 2 lines, ensure it fits)
 - Content: Clean, organized layout with clear hierarchy
-- For lists: Use numbered or bulleted format, clearly organized
-- For summaries: Use bullet points for key takeaways, organized sections
+- CRITICAL: ALL text must fit within the image boundaries - ensure proper spacing and margins
+- CRITICAL: No text should be cut off at edges - leave adequate padding on all sides
+- CRITICAL: Use appropriate font sizes so all content is fully visible and readable
+- For lists: Use numbered or bulleted format, clearly organized, all items fully visible
+- For summaries: Use bullet points for key takeaways, organized sections, all points fully visible
 - Add small "{display_username}" handle in bottom-left or bottom-right corner
 - High contrast, modern, premium feel — looks expensive
 - DO NOT include technical specifications like pixel sizes, font names, font sizes, or hex color codes in the image prompts
+
+=== CONTENT LENGTH GUIDELINES ===
+- Title: Keep under 60 characters or split into max 2 lines
+- For lists: Maximum 10 items, each item max 2 lines
+- For summaries: Maximum 5-7 bullet points, each max 2 lines
+- Total content should fit comfortably within the image with proper margins
 
 === OUTPUT FORMAT ===
 Return ONLY a valid JSON object (no markdown, no explanation) with exactly these keys:
 
 {{
   "type": "list" or "summary",
-  "title": "Exact title text that will appear on the image (derived from or matching the user prompt)",
-  "content": "Exact content that will appear on the image (use \\n for line breaks, numbered or bulleted format)",
-  "image_prompt": "Extremely detailed prompt that forces Gemini to render the exact title and content as text on the image. Include layout, colors, fonts, and all text verbatim. Do NOT include pixel sizes, font names, font sizes, or hex color codes."
+  "title": "Exact title text that will appear on the image (derived from or matching the user prompt, keep concise, max 2 lines)",
+  "content": "Exact content that will appear on the image (use \\n for line breaks, numbered or bulleted format, ensure all items fit)",
+  "image_prompt": "Extremely detailed prompt that forces Gemini to render the exact title and content as text on the image. CRITICAL: Emphasize that ALL text must be fully visible within the image boundaries with proper margins. Include layout, colors, fonts, and all text verbatim. Explicitly state: 'Ensure all text fits within the image with adequate padding on all sides - no text should be cut off or truncated. All list items/summary points must be fully visible.' Do NOT include pixel sizes, font names, font sizes, or hex color codes."
 }}
 {extra_instructions_section}
 User Prompt: {user_prompt}
@@ -1774,7 +1828,7 @@ async def process_text_node(
         print("\n" + "=" * 80)
         print("📄 NODE: process_text_node - Processing article text")
         print("=" * 80)
-        
+
         # Get text from state (either from 'article_text' or 'url' field if it's actually text)
         article_text = state.get("article_text") or state.get("url", "")
         custom_title = state.get("title")
@@ -2398,9 +2452,7 @@ def create_agent(
 # ============================================================================
 
 
-def text_to_article_content(
-    text: str, title: Optional[str] = None
-) -> Dict[str, Any]:
+def text_to_article_content(text: str, title: Optional[str] = None) -> Dict[str, Any]:
     """
     Convert plain text to article content format (same format as scrape_article_content).
 
@@ -2441,8 +2493,10 @@ def text_to_article_content(
         for para in paragraphs:
             if para:
                 # Check if it looks like a heading (short, no period, all caps or title case)
-                if len(para) < 100 and not para.endswith(".") and (
-                    para.isupper() or para.istitle()
+                if (
+                    len(para) < 100
+                    and not para.endswith(".")
+                    and (para.isupper() or para.istitle())
                 ):
                     content.append({"tag": "h2", "text": para})
                 else:
@@ -3148,9 +3202,7 @@ async def generate_carousel_from_text(
         Dictionary containing carousel slides with images and captions (if enabled)
     """
     try:
-        agent = create_agent(
-            openai_api_key=openai_api_key, openrouter_api_key=openrouter_api_key
-        )
+        agent = create_agent(openai_api_key=openai_api_key, openrouter_api_key=openrouter_api_key)
         return await agent.process_from_text(
             article_text=article_text,
             max_slides=max_slides,
