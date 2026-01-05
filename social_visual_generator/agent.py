@@ -115,6 +115,7 @@ class SocialMediaContentState(TypedDict):
     image_model: Optional[
         str
     ]  # Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+    orientation: Optional[str]  # Image orientation ("square" or "vertical")
     output_folder: Optional[Path]  # Folder for saving images
     article_content: Optional[Dict[str, Any]]
     slides: Optional[List[Dict[str, Any]]]
@@ -929,6 +930,7 @@ class LLMService:
         font_name: Optional[str] = None,
         background_info: Optional[str] = None,
         color_schema: Optional[str] = None,
+        orientation: str = "square",
     ) -> List[Dict[str, Any]]:
         """
         Generate carousel slide content from article.
@@ -992,7 +994,7 @@ class LLMService:
             display_font_name = font_name or "modern sans-serif font"
             display_background = (
                 background_info
-                or "Clean gradient or subtle tech/coding theme (dark navy/blue/purple or modern light mode)"
+                or "Clean gradient or subtle tech/coding theme (dark navy/blue/black or modern light mode)"
             )
             display_color_schema = (
                 color_schema
@@ -1005,6 +1007,10 @@ class LLMService:
                 extra_instructions_section = (
                     f"\n=== ADDITIONAL INSTRUCTIONS ===\n{extra_instructions}\n"
                 )
+
+            # Determine aspect ratio based on orientation
+            aspect_ratio = "1080x1080" if orientation == "square" else "1080x1350"
+            orientation_display = orientation.upper()
 
             prompt = f"""
 You are an expert LinkedIn/Instagram carousel designer who creates HIGHLY ENGAGING informational carousels that get thousands of saves and shares.
@@ -1030,7 +1036,7 @@ Every slide image must contain the text (title + content) directly on the image 
 
 === DESIGN RULES FOR EVERY IMAGE_PROMPT (CRITICAL) ===
 All slides must look like professional Canva-style carousel slides:
-- Format: Square or vertical orientation (1080x1080 or 1080x1350 aspect ratio)
+- Format: {orientation_display} orientation ({aspect_ratio} aspect ratio)
 - Background: {display_background}
 - Color scheme: {display_color_schema}
 - Title: Extra large bold {display_font_name}, top portion of slide (max 2 lines, ensure it fits)
@@ -1098,6 +1104,7 @@ Now generate exactly {max_slides} slides following all rules above.
         background_info: Optional[str] = None,
         color_schema: Optional[str] = None,
         extra_instructions: Optional[str] = None,
+        orientation: str = "square",
     ) -> List[Dict[str, Any]]:
         """
         Generate carousel slide content from a user text prompt.
@@ -1124,7 +1131,7 @@ Now generate exactly {max_slides} slides following all rules above.
             display_font_name = font_name or "modern sans-serif font"
             display_background = (
                 background_info
-                or "Clean gradient or subtle tech/coding theme (dark navy/blue/purple or modern light mode)"
+                or "Clean gradient or subtle tech/coding theme (dark navy/blue/black or modern light mode)"
             )
             display_color_schema = (
                 color_schema
@@ -1137,6 +1144,10 @@ Now generate exactly {max_slides} slides following all rules above.
                 extra_instructions_section = (
                     f"\n=== ADDITIONAL INSTRUCTIONS ===\n{extra_instructions}\n"
                 )
+
+            # Determine aspect ratio based on orientation
+            aspect_ratio = "1080x1080" if orientation == "square" else "1080x1350"
+            orientation_display = orientation.upper()
 
             prompt = f"""
 You are an expert LinkedIn/Instagram carousel designer who creates HIGHLY ENGAGING informational carousels that get thousands of saves and shares.
@@ -1185,7 +1196,7 @@ Analyze the user's prompt to understand what content to create:
 
 === DESIGN RULES FOR EVERY IMAGE_PROMPT (CRITICAL) ===
 All slides must look like professional Canva-style carousel slides:
-- Format: Square or vertical orientation (1080x1080 or 1080x1350 aspect ratio)
+- Format: {orientation_display} orientation ({aspect_ratio} aspect ratio)
 - Background: {display_background}
 - Color scheme: {display_color_schema}
 - Title: Extra large bold {display_font_name}, top portion of slide (max 2 lines, ensure it fits)
@@ -1250,6 +1261,7 @@ Now generate exactly {max_slides} slides following all rules above.
         font_name: Optional[str] = None,
         background_info: Optional[str] = None,
         color_schema: Optional[str] = None,
+        orientation: str = "square",
     ) -> Dict[str, Any]:
         """
         Generate a single informational image from article.
@@ -1280,7 +1292,7 @@ Now generate exactly {max_slides} slides following all rules above.
             display_font_name = font_name or "modern sans-serif font"
             display_background = (
                 background_info
-                or "Clean gradient or subtle tech/coding theme (dark navy/blue/purple or modern light mode)"
+                or "Clean gradient or subtle tech/coding theme (dark navy/blue/black or modern light mode)"
             )
             display_color_schema = (
                 color_schema
@@ -1293,6 +1305,10 @@ Now generate exactly {max_slides} slides following all rules above.
                 extra_instructions_section = (
                     f"\n=== ADDITIONAL INSTRUCTIONS ===\n{extra_instructions}\n"
                 )
+
+            # Determine aspect ratio based on orientation
+            aspect_ratio = "1080x1080" if orientation == "square" else "1080x1350"
+            orientation_display = orientation.upper()
 
             prompt = f"""
 You are an expert social media content designer who creates HIGHLY ENGAGING informational images.
@@ -1322,7 +1338,7 @@ Your job: Analyze the article below and create a SINGLE informational image that
 
 === DESIGN RULES FOR IMAGE_PROMPT (CRITICAL) ===
 The image must look like a professional informational graphic:
-- Format: Square or vertical orientation (1080x1080 or 1080x1350 aspect ratio)
+- Format: {orientation_display} orientation ({aspect_ratio} aspect ratio)
 - Background: {display_background}
 - Color scheme: {display_color_schema}
 - Title: Extra large bold {display_font_name}, top portion of image (max 2 lines, ensure it fits)
@@ -1388,6 +1404,7 @@ Now analyze the article and generate the single informational image following al
         background_info: Optional[str] = None,
         color_schema: Optional[str] = None,
         extra_instructions: Optional[str] = None,
+        orientation: str = "square",
     ) -> Dict[str, Any]:
         """
         Generate an infographic from a user text prompt.
@@ -1417,7 +1434,7 @@ Now analyze the article and generate the single informational image following al
             display_font_name = font_name or "modern sans-serif font"
             display_background = (
                 background_info
-                or "Clean gradient or subtle tech/coding theme (dark navy/blue/purple or modern light mode)"
+                or "Clean gradient or subtle tech/coding theme (dark navy/blue/black or modern light mode)"
             )
             display_color_schema = (
                 color_schema
@@ -1430,6 +1447,10 @@ Now analyze the article and generate the single informational image following al
                 extra_instructions_section = (
                     f"\n=== ADDITIONAL INSTRUCTIONS ===\n{extra_instructions}\n"
                 )
+
+            # Determine aspect ratio based on orientation
+            aspect_ratio = "1080x1080" if orientation == "square" else "1080x1350"
+            orientation_display = orientation.upper()
 
             prompt = f"""
 You are an expert social media content designer who creates HIGHLY ENGAGING informational infographics from user prompts.
@@ -1460,7 +1481,7 @@ First, analyze the user's prompt to determine the type:
 
 === DESIGN RULES FOR IMAGE_PROMPT (CRITICAL) ===
 The image must look like a professional informational graphic:
-- Format: Square or vertical orientation (1080x1080 or 1080x1350 aspect ratio)
+- Format: {orientation_display} orientation ({aspect_ratio} aspect ratio)
 - Background: {display_background}
 - Color scheme: {display_color_schema}
 - Title: Extra large bold {display_font_name}, top portion of image (max 2 lines, ensure it fits)
@@ -1905,6 +1926,7 @@ async def generate_slides_node(
             font_name=state.get("font_name"),
             background_info=state.get("background_info"),
             color_schema=state.get("color_schema"),
+            orientation=state.get("orientation") or "square",
         )
 
         if not slides:
@@ -1951,6 +1973,7 @@ async def generate_images_node(
         # Get image generation parameters
         image_provider = state.get("image_provider") or IMAGE_PROVIDER
         image_model = state.get("image_model") or IMAGE_MODEL
+        orientation = state.get("orientation") or "square"
         openai_api_key = state.get("openai_api_key")
         openrouter_api_key = state.get("openrouter_api_key")
 
@@ -1974,6 +1997,7 @@ async def generate_images_node(
                     output_folder=output_folder,
                     openai_api_key=openai_api_key,
                     openrouter_api_key=openrouter_api_key,
+                    orientation=orientation,
                     provider=image_provider,
                     model=image_model,
                 )
@@ -2228,6 +2252,7 @@ class SocialMediaContentGeneratorAgent:
         color_schema: Optional[str] = None,
         image_provider: Optional[str] = None,
         image_model: Optional[str] = None,
+        orientation: str = "square",
         enable_captions: bool = False,
         enabled_platforms: Optional[List[str]] = None,
         thread_id: str = "default",
@@ -2247,6 +2272,7 @@ class SocialMediaContentGeneratorAgent:
             color_schema: Color schema description
             image_provider: Image generation provider ("openrouter" or "openai")
             image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+            orientation: Image orientation ("square" or "vertical", default: "square")
             enable_captions: Whether to generate captions for social platforms (default: False)
             enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
             thread_id: Thread ID for conversation tracking
@@ -2275,6 +2301,7 @@ class SocialMediaContentGeneratorAgent:
                 "color_schema": color_schema,
                 "image_provider": image_provider,
                 "image_model": image_model,
+                "orientation": orientation,
                 "output_folder": None,
                 "article_content": None,
                 "slides": None,
@@ -2335,6 +2362,7 @@ class SocialMediaContentGeneratorAgent:
         color_schema: Optional[str] = None,
         image_provider: Optional[str] = None,
         image_model: Optional[str] = None,
+        orientation: str = "square",
         enable_captions: bool = False,
         enabled_platforms: Optional[List[str]] = None,
         thread_id: str = "default",
@@ -2354,6 +2382,7 @@ class SocialMediaContentGeneratorAgent:
             color_schema: Color schema description
             image_provider: Image generation provider ("openrouter" or "openai")
             image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+            orientation: Image orientation ("square" or "vertical", default: "square")
             enable_captions: Whether to generate captions for social platforms (default: False)
             enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
             thread_id: Thread ID for conversation tracking
@@ -2383,6 +2412,7 @@ class SocialMediaContentGeneratorAgent:
                 "color_schema": color_schema,
                 "image_provider": image_provider,
                 "image_model": image_model,
+                "orientation": orientation,
                 "openai_api_key": self.openai_api_key,
                 "openrouter_api_key": self.openrouter_api_key,
                 "output_folder": None,
@@ -2565,6 +2595,7 @@ async def generate_single_informational_image(
     color_schema: Optional[str] = None,
     image_provider: Optional[str] = None,
     image_model: Optional[str] = None,
+    orientation: str = "square",
     enable_captions: bool = False,
     enabled_platforms: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
@@ -2577,6 +2608,12 @@ async def generate_single_informational_image(
         tagline: Tagline/brand message (e.g., "daily programming tips & tricks")
         title: Custom title to override scraped article title
         extra_instructions: Additional instructions for the LLM
+        font_name: Font name for the image
+        background_info: Background description
+        color_schema: Color schema description
+        image_provider: Image generation provider ("openrouter" or "openai")
+        image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+        orientation: Image orientation ("square" or "vertical", default: "square")
         enable_captions: Whether to generate captions for social platforms (default: False)
         enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
 
@@ -2619,6 +2656,7 @@ async def generate_single_informational_image(
             font_name=font_name,
             background_info=background_info,
             color_schema=color_schema,
+            orientation=orientation,
         )
 
         # Generate the image
@@ -2636,7 +2674,7 @@ async def generate_single_informational_image(
                 output_folder=image_folder,
                 openai_api_key=openai_api_key,
                 openrouter_api_key=openrouter_api_key,
-                orientation="square",
+                orientation=orientation,
                 reference_image_base64=None,
                 provider=image_provider_param,
                 model=image_model_param,
@@ -2708,6 +2746,7 @@ async def generate_infographic_from_prompt(
     extra_instructions: Optional[str] = None,
     image_provider: Optional[str] = None,
     image_model: Optional[str] = None,
+    orientation: str = "square",
     enable_captions: bool = False,
     enabled_platforms: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
@@ -2722,6 +2761,9 @@ async def generate_infographic_from_prompt(
         background_info: Background description
         color_schema: Color schema description
         extra_instructions: Additional instructions for the LLM
+        image_provider: Image generation provider ("openrouter" or "openai")
+        image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+        orientation: Image orientation ("square" or "vertical", default: "square")
         enable_captions: Whether to generate captions for social platforms (default: False)
         enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
 
@@ -2755,6 +2797,7 @@ async def generate_infographic_from_prompt(
             background_info=background_info,
             color_schema=color_schema,
             extra_instructions=extra_instructions,
+            orientation=orientation,
         )
 
         # Generate the image
@@ -2775,7 +2818,7 @@ async def generate_infographic_from_prompt(
                 output_folder=infographic_folder,
                 openai_api_key=openai_api_key,
                 openrouter_api_key=openrouter_api_key,
-                orientation="square",
+                orientation=orientation,
                 reference_image_base64=None,
                 provider=image_provider_param,
                 model=image_model_param,
@@ -2847,6 +2890,7 @@ async def generate_carousel_from_prompt(
     extra_instructions: Optional[str] = None,
     image_provider: Optional[str] = None,
     image_model: Optional[str] = None,
+    orientation: str = "square",
     enable_captions: bool = False,
     enabled_platforms: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
@@ -2864,6 +2908,7 @@ async def generate_carousel_from_prompt(
         extra_instructions: Additional instructions for the LLM
         image_provider: Image generation provider ("openrouter" or "openai")
         image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+        orientation: Image orientation ("square" or "vertical", default: "square")
         enable_captions: Whether to generate captions for social platforms (default: False)
         enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
 
@@ -2898,6 +2943,7 @@ async def generate_carousel_from_prompt(
             background_info=background_info,
             color_schema=color_schema,
             extra_instructions=extra_instructions,
+            orientation=orientation,
         )
 
         # Generate images for each slide concurrently in background threads
@@ -2926,7 +2972,7 @@ async def generate_carousel_from_prompt(
                     output_folder=carousel_folder,
                     openai_api_key=openai_api_key,
                     openrouter_api_key=openrouter_api_key,
-                    orientation="square",
+                    orientation=orientation,
                     reference_image_base64=None,
                     provider=image_provider_param,
                     model=image_model_param,
@@ -3019,6 +3065,7 @@ async def generate_infographic_with_reference_image(
     color_schema: Optional[str] = None,
     image_provider: Optional[str] = None,
     image_model: Optional[str] = None,
+    orientation: str = "square",
     enable_captions: bool = False,
     enabled_platforms: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
@@ -3033,6 +3080,9 @@ async def generate_infographic_with_reference_image(
         font_name: Font name for the infographic
         background_info: Background description
         color_schema: Color schema description
+        image_provider: Image generation provider ("openrouter" or "openai")
+        image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+        orientation: Image orientation ("square" or "vertical", default: "square")
         enable_captions: Whether to generate captions for social platforms (default: False)
         enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
 
@@ -3068,6 +3118,7 @@ async def generate_infographic_with_reference_image(
             font_name=font_name,
             background_info=background_info,
             color_schema=color_schema,
+            orientation=orientation,
         )
 
         # Extract content from LLM response for the reference-based generation
@@ -3099,7 +3150,7 @@ NOTE: The reference image will define all design elements. Just ensure the above
                 output_folder=infographic_folder,
                 openai_api_key=openai_api_key,
                 openrouter_api_key=openrouter_api_key,
-                orientation="square",
+                orientation=orientation,
                 reference_image_base64=reference_image_base64,
                 provider=image_provider_param,
                 model=image_model_param,
@@ -3177,6 +3228,7 @@ async def generate_carousel_from_text(
     color_schema: Optional[str] = None,
     image_provider: Optional[str] = None,
     image_model: Optional[str] = None,
+    orientation: str = "square",
     enable_captions: bool = False,
     enabled_platforms: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
@@ -3195,6 +3247,7 @@ async def generate_carousel_from_text(
         color_schema: Color schema description
         image_provider: Image generation provider ("openrouter" or "openai")
         image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+        orientation: Image orientation ("square" or "vertical", default: "square")
         enable_captions: Whether to generate captions for social platforms (default: False)
         enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
 
@@ -3215,6 +3268,7 @@ async def generate_carousel_from_text(
             color_schema=color_schema,
             image_provider=image_provider,
             image_model=image_model,
+            orientation=orientation,
             enable_captions=enable_captions,
             enabled_platforms=enabled_platforms,
         )
@@ -3236,6 +3290,7 @@ async def generate_single_informational_image_from_text(
     color_schema: Optional[str] = None,
     image_provider: Optional[str] = None,
     image_model: Optional[str] = None,
+    orientation: str = "square",
     enable_captions: bool = False,
     enabled_platforms: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
@@ -3253,6 +3308,7 @@ async def generate_single_informational_image_from_text(
         color_schema: Color schema description (e.g., "navy background with white and cyan accent text")
         image_provider: Image generation provider ("openrouter" or "openai")
         image_model: Image generation model (e.g., "dall-e-3", "google/gemini-2.5-flash-image")
+        orientation: Image orientation ("square" or "vertical", default: "square")
         enable_captions: Whether to generate captions for social platforms (default: False)
         enabled_platforms: List of platforms to generate captions for (defaults to all platforms)
 
@@ -3297,6 +3353,7 @@ async def generate_single_informational_image_from_text(
             font_name=font_name,
             background_info=background_info,
             color_schema=color_schema,
+            orientation=orientation,
         )
 
         # Generate the image
@@ -3314,7 +3371,7 @@ async def generate_single_informational_image_from_text(
                 output_folder=image_folder,
                 openai_api_key=openai_api_key,
                 openrouter_api_key=openrouter_api_key,
-                orientation="square",
+                orientation=orientation,
                 reference_image_base64=None,
                 provider=image_provider_param,
                 model=image_model_param,

@@ -55,6 +55,11 @@ async def test_infographic_from_prompt():
     )
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
+    orientation = (
+        input("Orientation (square/vertical, default: square): ").strip().lower() or "square"
+    )
+    if orientation not in ["square", "vertical"]:
+        orientation = "square"
 
     # Caption generation option
     enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
@@ -63,6 +68,7 @@ async def test_infographic_from_prompt():
         enabled_platforms = select_platforms()
 
     print(f"\n📝 Generating infographic for: '{prompt}'")
+    print(f"   Orientation: {orientation}")
     if enable_captions:
         print("   (with caption generation)")
     print("⏳ This may take 30-60 seconds...\n")
@@ -75,6 +81,7 @@ async def test_infographic_from_prompt():
             font_name="Inter",
             background_info="Dark background #101010",
             color_schema="White text with cyan accents",
+            orientation=orientation,
             enable_captions=enable_captions,
             enabled_platforms=enabled_platforms,
         )
@@ -110,6 +117,11 @@ async def test_carousel_from_prompt():
     max_slides = input("Max slides (default: 5): ").strip() or "5"
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
+    orientation = (
+        input("Orientation (square/vertical, default: square): ").strip().lower() or "square"
+    )
+    if orientation not in ["square", "vertical"]:
+        orientation = "square"
 
     # Caption generation option
     enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
@@ -124,6 +136,7 @@ async def test_carousel_from_prompt():
 
     print(f"\n📝 Generating carousel for: '{prompt}'")
     print(f"   Slides: {max_slides}")
+    print(f"   Orientation: {orientation}")
     if enable_captions:
         print("   (with caption generation)")
     print("⏳ This may take 2-5 minutes...\n")
@@ -134,6 +147,7 @@ async def test_carousel_from_prompt():
             max_slides=max_slides,
             username=username,
             tagline=tagline,
+            orientation=orientation,
             enable_captions=enable_captions,
             enabled_platforms=enabled_platforms,
         )
@@ -175,6 +189,11 @@ async def test_single_image():
     )
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
+    orientation = (
+        input("Orientation (square/vertical, default: square): ").strip().lower() or "square"
+    )
+    if orientation not in ["square", "vertical"]:
+        orientation = "square"
 
     # Caption generation option
     enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
@@ -183,6 +202,7 @@ async def test_single_image():
         enabled_platforms = select_platforms()
 
     print(f"\n📝 Generating image from: {url}")
+    print(f"   Orientation: {orientation}")
     if enable_captions:
         print("   (with caption generation)")
     print("⏳ This may take 30-60 seconds...\n")
@@ -192,6 +212,7 @@ async def test_single_image():
             url=url,
             username=username,
             tagline=tagline,
+            orientation=orientation,
             enable_captions=enable_captions,
             enabled_platforms=enabled_platforms,
         )
@@ -231,6 +252,11 @@ async def test_infographic_with_reference():
 
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
+    orientation = (
+        input("Orientation (square/vertical, default: square): ").strip().lower() or "square"
+    )
+    if orientation not in ["square", "vertical"]:
+        orientation = "square"
 
     # Caption generation option
     enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
@@ -239,6 +265,7 @@ async def test_infographic_with_reference():
         enabled_platforms = select_platforms()
 
     print(f"\n📝 Generating infographic with reference image...")
+    print(f"   Orientation: {orientation}")
     if enable_captions:
         print("   (with caption generation)")
     print("⏳ This may take 30-60 seconds...\n")
@@ -252,6 +279,7 @@ async def test_infographic_with_reference():
             reference_image_bytes=image_bytes,
             username=username,
             tagline=tagline,
+            orientation=orientation,
             image_provider="openai",
             image_model="gpt-image-1.5",
             enable_captions=enable_captions,
@@ -293,7 +321,7 @@ async def test_carousel_from_text():
             break
         if line:
             lines.append(line)
-    
+
     article_text = "\n".join(lines)
     if not article_text.strip():
         print("❌ Article text is required")
@@ -303,9 +331,18 @@ async def test_carousel_from_text():
     title = input("Title (optional, press Enter to auto-extract): ").strip() or None
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
+    orientation = (
+        input("Orientation (square/vertical, default: square): ").strip().lower() or "square"
+    )
+    if orientation not in ["square", "vertical"]:
+        orientation = "square"
     font_name = input("Font name (optional, e.g., 'Arial', 'Roboto'): ").strip() or None
-    background_info = input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
-    color_schema = input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    background_info = (
+        input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
+    )
+    color_schema = (
+        input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    )
     extra_instructions = input("Extra instructions (optional): ").strip() or None
 
     # Caption generation option
@@ -321,6 +358,7 @@ async def test_carousel_from_text():
 
     print(f"\n📝 Generating carousel from text ({len(article_text)} chars)")
     print(f"   Slides: {max_slides}")
+    print(f"   Orientation: {orientation}")
     if enable_captions:
         print("   (with caption generation)")
     print("⏳ This may take 2-5 minutes...\n")
@@ -332,6 +370,7 @@ async def test_carousel_from_text():
             title=title,
             username=username,
             tagline=tagline,
+            orientation=orientation,
             font_name=font_name,
             background_info=background_info,
             color_schema=color_schema,
@@ -379,7 +418,7 @@ async def test_single_image_from_text():
             break
         if line:
             lines.append(line)
-    
+
     article_text = "\n".join(lines)
     if not article_text.strip():
         print("❌ Article text is required")
@@ -388,9 +427,18 @@ async def test_single_image_from_text():
     title = input("\nTitle (optional, press Enter to auto-extract): ").strip() or None
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
+    orientation = (
+        input("Orientation (square/vertical, default: square): ").strip().lower() or "square"
+    )
+    if orientation not in ["square", "vertical"]:
+        orientation = "square"
     font_name = input("Font name (optional, e.g., 'Arial', 'Roboto'): ").strip() or None
-    background_info = input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
-    color_schema = input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    background_info = (
+        input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
+    )
+    color_schema = (
+        input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    )
     extra_instructions = input("Extra instructions (optional): ").strip() or None
 
     # Caption generation option
@@ -400,6 +448,7 @@ async def test_single_image_from_text():
         enabled_platforms = select_platforms()
 
     print(f"\n📝 Generating image from text ({len(article_text)} chars)")
+    print(f"   Orientation: {orientation}")
     if enable_captions:
         print("   (with caption generation)")
     print("⏳ This may take 30-60 seconds...\n")
@@ -410,6 +459,7 @@ async def test_single_image_from_text():
             title=title,
             username=username,
             tagline=tagline,
+            orientation=orientation,
             font_name=font_name,
             background_info=background_info,
             color_schema=color_schema,
@@ -452,6 +502,11 @@ async def test_agent_process():
     max_slides = input("Max slides (default: 5): ").strip() or "5"
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
+    orientation = (
+        input("Orientation (square/vertical, default: square): ").strip().lower() or "square"
+    )
+    if orientation not in ["square", "vertical"]:
+        orientation = "square"
 
     # Caption generation option
     enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
@@ -466,6 +521,7 @@ async def test_agent_process():
 
     print(f"\n📝 Processing article from: {url}")
     print(f"   Slides: {max_slides}")
+    print(f"   Orientation: {orientation}")
     if enable_captions:
         print("   (with caption generation)")
     print("⏳ This may take 2-5 minutes...\n")
@@ -477,6 +533,7 @@ async def test_agent_process():
             max_slides=max_slides,
             username=username,
             tagline=tagline,
+            orientation=orientation,
             enable_captions=enable_captions,
             enabled_platforms=enabled_platforms,
         )
@@ -520,7 +577,7 @@ async def test_agent_process_from_text():
             break
         if line:
             lines.append(line)
-    
+
     article_text = "\n".join(lines)
     if not article_text.strip():
         print("❌ Article text is required")
@@ -530,9 +587,18 @@ async def test_agent_process_from_text():
     title = input("Title (optional, press Enter to auto-extract): ").strip() or None
     username = input("Username (default: @test): ").strip() or "@test"
     tagline = input("Tagline (default: test tagline): ").strip() or "test tagline"
+    orientation = (
+        input("Orientation (square/vertical, default: square): ").strip().lower() or "square"
+    )
+    if orientation not in ["square", "vertical"]:
+        orientation = "square"
     font_name = input("Font name (optional, e.g., 'Arial', 'Roboto'): ").strip() or None
-    background_info = input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
-    color_schema = input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    background_info = (
+        input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
+    )
+    color_schema = (
+        input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    )
     extra_instructions = input("Extra instructions (optional): ").strip() or None
 
     # Caption generation option
@@ -548,6 +614,7 @@ async def test_agent_process_from_text():
 
     print(f"\n📝 Processing article from text ({len(article_text)} chars)")
     print(f"   Slides: {max_slides}")
+    print(f"   Orientation: {orientation}")
     if enable_captions:
         print("   (with caption generation)")
     print("⏳ This may take 2-5 minutes...\n")
@@ -560,6 +627,7 @@ async def test_agent_process_from_text():
             title=title,
             username=username,
             tagline=tagline,
+            orientation=orientation,
             font_name=font_name,
             background_info=background_info,
             color_schema=color_schema,

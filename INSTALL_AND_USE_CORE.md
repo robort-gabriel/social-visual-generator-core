@@ -58,6 +58,7 @@ class InfographicRequest(BaseModel):
     prompt: str
     username: str = "@test"
     tagline: str = "test tagline"
+    orientation: str = "square"  # "square" or "vertical"
     enable_captions: bool = False
     enabled_platforms: list[str] = None  # Optional: ["instagram", "linkedin", ...]
 
@@ -69,6 +70,7 @@ async def create_infographic(request: InfographicRequest):
         openrouter_api_key=OPENROUTER_API_KEY,
         username=request.username,
         tagline=request.tagline,
+        orientation=request.orientation,
         enable_captions=request.enable_captions,
         enabled_platforms=request.enabled_platforms or ALL_PLATFORMS if request.enable_captions else None,
     )
@@ -88,6 +90,7 @@ OPENROUTER_API_KEY = "your-openrouter-key"  # Optional
 async def generate_carousel(
     url: str, 
     max_slides: int = 5,
+    orientation: str = "square",  # "square" or "vertical"
     enable_captions: bool = False,
     enabled_platforms: list[str] = None
 ):
@@ -100,6 +103,7 @@ async def generate_carousel(
         max_slides=max_slides,
         username="@test",
         tagline="test tagline",
+        orientation=orientation,
         enable_captions=enable_captions,
         enabled_platforms=enabled_platforms or ALL_PLATFORMS if enable_captions else None,
     )
@@ -122,6 +126,7 @@ async def generate_carousel_from_text_agent(
     title: str = None,
     username: str = "@test",
     tagline: str = "test tagline",
+    orientation: str = "square",  # "square" or "vertical"
     font_name: str = None,
     background_info: str = None,
     color_schema: str = None,
@@ -139,6 +144,7 @@ async def generate_carousel_from_text_agent(
         title=title,  # Optional: override extracted title
         username=username,
         tagline=tagline,
+        orientation=orientation,
         font_name=font_name,  # Optional: e.g., "Arial", "Roboto"
         background_info=background_info,  # Optional: e.g., "dark navy gradient"
         color_schema=color_schema,  # Optional: e.g., "navy background with white and cyan accent text"
@@ -162,6 +168,7 @@ OPENROUTER_API_KEY = "your-openrouter-key"  # Optional
 async def create_carousel(
     prompt: str, 
     max_slides: int = 5,
+    orientation: str = "square",  # "square" or "vertical"
     enable_captions: bool = False,
     enabled_platforms: list[str] = None
 ):
@@ -172,6 +179,7 @@ async def create_carousel(
         openrouter_api_key=OPENROUTER_API_KEY,
         username="@test",
         tagline="test tagline",
+        orientation=orientation,
         enable_captions=enable_captions,
         enabled_platforms=enabled_platforms or ALL_PLATFORMS if enable_captions else None,
     )
@@ -194,6 +202,7 @@ async def create_carousel_from_text(
     title: str = None,
     username: str = "@test",
     tagline: str = "test tagline",
+    orientation: str = "square",  # "square" or "vertical"
     font_name: str = None,
     background_info: str = None,
     color_schema: str = None,
@@ -209,6 +218,7 @@ async def create_carousel_from_text(
         openrouter_api_key=OPENROUTER_API_KEY,
         username=username,
         tagline=tagline,
+        orientation=orientation,
         font_name=font_name,  # Optional: e.g., "Arial", "Roboto"
         background_info=background_info,  # Optional: e.g., "dark navy gradient"
         color_schema=color_schema,  # Optional: e.g., "navy background with white and cyan accent text"
@@ -234,6 +244,7 @@ async def create_single_image_from_text(
     title: str = None,
     username: str = "@test",
     tagline: str = "test tagline",
+    orientation: str = "square",  # "square" or "vertical"
     font_name: str = None,
     background_info: str = None,
     color_schema: str = None,
@@ -248,6 +259,7 @@ async def create_single_image_from_text(
         openrouter_api_key=OPENROUTER_API_KEY,
         username=username,
         tagline=tagline,
+        orientation=orientation,
         font_name=font_name,  # Optional: e.g., "Arial", "Roboto"
         background_info=background_info,  # Optional: e.g., "dark navy gradient"
         color_schema=color_schema,  # Optional: e.g., "navy background with white and cyan accent text"
@@ -270,6 +282,7 @@ from social_visual_generator.agent import ALL_PLATFORMS, INSTAGRAM, LINKEDIN
 result = await generate_carousel_from_prompt(
     user_prompt="top 10 AI tools",
     max_slides=5,
+    orientation="square",  # or "vertical"
     openai_api_key=OPENAI_API_KEY,
     enable_captions=True,
     enabled_platforms=[INSTAGRAM, LINKEDIN],  # Or use ALL_PLATFORMS for all
@@ -291,6 +304,36 @@ print(result["captions"])
 - `PINTEREST` - Pinterest pins
 - `REDDIT` - Reddit posts
 - `ALL_PLATFORMS` - All platforms (default when enabled)
+
+## Image Orientation
+
+All generation functions support choosing between **square** and **vertical** orientations:
+
+- **Square** (`orientation="square"`): 1080x1080 aspect ratio - Recommended for most carousel posts
+- **Vertical** (`orientation="vertical"`): 1080x1350 aspect ratio - Provides more vertical space for content
+
+**Example:**
+```python
+# Square orientation (default)
+result = await generate_carousel_from_prompt(
+    user_prompt="top 10 AI tools",
+    max_slides=5,
+    orientation="square",  # 1080x1080
+    openai_api_key=OPENAI_API_KEY,
+)
+
+# Vertical orientation
+result = await generate_carousel_from_prompt(
+    user_prompt="top 10 AI tools",
+    max_slides=5,
+    orientation="vertical",  # 1080x1350
+    openai_api_key=OPENAI_API_KEY,
+)
+```
+
+**When to use each:**
+- **Square**: Best for most social media platforms, balanced layout, standard carousel format
+- **Vertical**: Better for content-heavy slides, longer lists, or when you need more vertical space
 
 ## Performance Features
 
@@ -315,6 +358,7 @@ All image generation runs in **background threads** to prevent blocking your Fas
 result = await generate_carousel_from_prompt(
     user_prompt="top 10 AI tools",
     max_slides=10,  # All 10 images generate concurrently!
+    orientation="square",  # or "vertical"
     openai_api_key=OPENAI_API_KEY,
 )
 ```
@@ -352,17 +396,22 @@ If you don't provide API keys, the package will fall back to environment variabl
 
 ## Available Functions
 
-All functions accept `openai_api_key` and `openrouter_api_key` parameters. All generation functions also support caption generation and run image generation in background threads:
+All functions accept `openai_api_key` and `openrouter_api_key` parameters. All generation functions also support caption generation, orientation selection, and run image generation in background threads:
 
-| Function | Description | Caption Support | Background Threads |
-|----------|-------------|-----------------|-------------------|
-| `generate_infographic_from_prompt(prompt, ..., enable_captions=False, enabled_platforms=None)` | Generate single infographic from text prompt | ✅ Yes | ✅ Yes |
-| `generate_carousel_from_prompt(prompt, max_slides, ..., enable_captions=False, enabled_platforms=None)` | Generate carousel slides from text prompt | ✅ Yes | ✅ Yes (concurrent) |
-| `generate_carousel_from_text(article_text, max_slides, ..., enable_captions=False, enabled_platforms=None)` | Generate carousel slides from article text | ✅ Yes | ✅ Yes (concurrent) |
-| `generate_single_informational_image(url, ..., enable_captions=False, enabled_platforms=None)` | Generate single image from article URL | ✅ Yes | ✅ Yes |
-| `generate_single_informational_image_from_text(article_text, ..., enable_captions=False, enabled_platforms=None)` | Generate single image from article text | ✅ Yes | ✅ Yes |
-| `generate_infographic_with_reference_image(prompt, image_bytes, ..., enable_captions=False, enabled_platforms=None)` | Generate infographic using reference image | ✅ Yes | ✅ Yes |
-| `create_agent(openai_api_key, openrouter_api_key)` | Create agent for processing URLs/text | ✅ Yes (via `agent.process()` or `agent.process_from_text()`) | ✅ Yes (concurrent) |
+| Function | Description | Orientation | Caption Support | Background Threads |
+|----------|-------------|-------------|-----------------|-------------------|
+| `generate_infographic_from_prompt(prompt, ..., orientation="square", enable_captions=False, enabled_platforms=None)` | Generate single infographic from text prompt | ✅ Yes | ✅ Yes | ✅ Yes |
+| `generate_carousel_from_prompt(prompt, max_slides, ..., orientation="square", enable_captions=False, enabled_platforms=None)` | Generate carousel slides from text prompt | ✅ Yes | ✅ Yes | ✅ Yes (concurrent) |
+| `generate_carousel_from_text(article_text, max_slides, ..., orientation="square", enable_captions=False, enabled_platforms=None)` | Generate carousel slides from article text | ✅ Yes | ✅ Yes | ✅ Yes (concurrent) |
+| `generate_single_informational_image(url, ..., orientation="square", enable_captions=False, enabled_platforms=None)` | Generate single image from article URL | ✅ Yes | ✅ Yes | ✅ Yes |
+| `generate_single_informational_image_from_text(article_text, ..., orientation="square", enable_captions=False, enabled_platforms=None)` | Generate single image from article text | ✅ Yes | ✅ Yes | ✅ Yes |
+| `generate_infographic_with_reference_image(prompt, image_bytes, ..., orientation="square", enable_captions=False, enabled_platforms=None)` | Generate infographic using reference image | ✅ Yes | ✅ Yes | ✅ Yes |
+| `create_agent(openai_api_key, openrouter_api_key)` | Create agent for processing URLs/text | ✅ Yes (via `agent.process()` or `agent.process_from_text()`) | ✅ Yes (via `agent.process()` or `agent.process_from_text()`) | ✅ Yes (concurrent) |
+
+**Orientation Parameter:**
+- `orientation` (str, default: "square") - Image orientation: `"square"` (1080x1080) or `"vertical"` (1080x1350)
+- Square orientation is recommended for most carousel posts
+- Vertical orientation provides more vertical space for content
 
 **Caption Generation Parameters:**
 - `enable_captions` (bool, default: False) - Enable caption generation
