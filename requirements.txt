@@ -13,9 +13,7 @@ langchain-core>=1.2.5
 python-dotenv>=1.0.0
 
 # Web Scraping
-playwright>=1.40.0
-aiohttp>=3.9.0
-beautifulsoup4>=4.12.0
+newspaper4k>=0.1.0
 requests>=2.31.0
 
 # Utilities

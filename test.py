@@ -60,6 +60,14 @@ async def test_infographic_from_prompt():
     )
     if orientation not in ["square", "vertical"]:
         orientation = "square"
+    font_name = input("Font name (optional, e.g., 'Arial', 'Roboto', 'Inter'): ").strip() or None
+    background_info = (
+        input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
+    )
+    color_schema = (
+        input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    )
+    extra_instructions = input("Extra instructions (optional): ").strip() or None
 
     # Caption generation option
     enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
@@ -78,9 +86,10 @@ async def test_infographic_from_prompt():
             user_prompt=prompt,
             username=username,
             tagline=tagline,
-            font_name="Inter",
-            background_info="Dark background #101010",
-            color_schema="White text with cyan accents",
+            font_name=font_name,
+            background_info=background_info,
+            color_schema=color_schema,
+            extra_instructions=extra_instructions,
             orientation=orientation,
             enable_captions=enable_captions,
             enabled_platforms=enabled_platforms,
@@ -122,6 +131,14 @@ async def test_carousel_from_prompt():
     )
     if orientation not in ["square", "vertical"]:
         orientation = "square"
+    font_name = input("Font name (optional, e.g., 'Arial', 'Roboto'): ").strip() or None
+    background_info = (
+        input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
+    )
+    color_schema = (
+        input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    )
+    extra_instructions = input("Extra instructions (optional): ").strip() or None
 
     # Caption generation option
     enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
@@ -147,6 +164,10 @@ async def test_carousel_from_prompt():
             max_slides=max_slides,
             username=username,
             tagline=tagline,
+            font_name=font_name,
+            background_info=background_info,
+            color_schema=color_schema,
+            extra_instructions=extra_instructions,
             orientation=orientation,
             enable_captions=enable_captions,
             enabled_platforms=enabled_platforms,
@@ -194,6 +215,14 @@ async def test_single_image():
     )
     if orientation not in ["square", "vertical"]:
         orientation = "square"
+    font_name = input("Font name (optional, e.g., 'Arial', 'Roboto'): ").strip() or None
+    background_info = (
+        input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
+    )
+    color_schema = (
+        input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    )
+    extra_instructions = input("Extra instructions (optional): ").strip() or None
 
     # Caption generation option
     enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
@@ -212,6 +241,10 @@ async def test_single_image():
             url=url,
             username=username,
             tagline=tagline,
+            font_name=font_name,
+            background_info=background_info,
+            color_schema=color_schema,
+            extra_instructions=extra_instructions,
             orientation=orientation,
             enable_captions=enable_captions,
             enabled_platforms=enabled_platforms,
@@ -257,6 +290,14 @@ async def test_infographic_with_reference():
     )
     if orientation not in ["square", "vertical"]:
         orientation = "square"
+    font_name = input("Font name (optional, e.g., 'Arial', 'Roboto'): ").strip() or None
+    background_info = (
+        input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
+    )
+    color_schema = (
+        input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    )
+    extra_instructions = input("Extra instructions (optional): ").strip() or None
 
     # Caption generation option
     enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
@@ -279,6 +320,9 @@ async def test_infographic_with_reference():
             reference_image_bytes=image_bytes,
             username=username,
             tagline=tagline,
+            font_name=font_name,
+            background_info=background_info,
+            color_schema=color_schema,
             orientation=orientation,
             image_provider="openai",
             image_model="gpt-image-1.5",
@@ -507,6 +551,14 @@ async def test_agent_process():
     )
     if orientation not in ["square", "vertical"]:
         orientation = "square"
+    font_name = input("Font name (optional, e.g., 'Arial', 'Roboto'): ").strip() or None
+    background_info = (
+        input("Background info (optional, e.g., 'dark navy gradient'): ").strip() or None
+    )
+    color_schema = (
+        input("Color schema (optional, e.g., 'navy background with white text'): ").strip() or None
+    )
+    extra_instructions = input("Extra instructions (optional): ").strip() or None
 
     # Caption generation option
     enable_captions = input("Generate captions? (y/N): ").strip().lower() == "y"
@@ -533,6 +585,10 @@ async def test_agent_process():
             max_slides=max_slides,
             username=username,
             tagline=tagline,
+            font_name=font_name,
+            background_info=background_info,
+            color_schema=color_schema,
+            extra_instructions=extra_instructions,
             orientation=orientation,
             enable_captions=enable_captions,
             enabled_platforms=enabled_platforms,

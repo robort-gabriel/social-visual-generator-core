@@ -42,10 +42,8 @@ from pathlib import Path
 from datetime import datetime
 import asyncio
 
-import aiohttp
 import requests
-from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright, Browser, Page
+from newspaper import Article
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.memory import MemorySaver
@@ -221,7 +219,7 @@ def save_captions_json(
 
 async def scrape_article_content(url: str) -> Dict[str, Any]:
     """
-    Scrape article content from a given URL using Playwright.
+    Scrape article content from a given URL using newspaper4k.
 
     Args:
         url: URL of the article to scrape
@@ -232,76 +230,46 @@ async def scrape_article_content(url: str) -> Dict[str, Any]:
     try:
         logger.info(f"Scraping article from: {url}")
 
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                headless=True,
-                args=[
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                ],
-            )
-
-            try:
-                page = await browser.new_page(
-                    viewport={"width": 1920, "height": 1080},
-                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                )
-
-                await page.goto(url, wait_until="networkidle", timeout=60000)
-                await asyncio.sleep(2)
-
-                # Extract article content
-                content = await page.evaluate(
-                    """
-                    () => {
-                        // Try to find the main article content
-                        const article = document.querySelector('article') || 
-                                      document.querySelector('main') ||
-                                      document.querySelector('[role="main"]') ||
-                                      document.body;
-                        
-                        // Get title
-                        const title = document.querySelector('h1')?.textContent?.trim() || 
-                                    document.title ||
-                                    'Untitled Article';
-                        
-                        // Get meta description
-                        const metaDesc = document.querySelector('meta[name="description"]')?.content || 
-                                       document.querySelector('meta[property="og:description"]')?.content ||
-                                       '';
-                        
-                        // Extract headings and paragraphs
-                        const elements = article.querySelectorAll('h1, h2, h3, h4, h5, h6, p');
-                        const content = Array.from(elements)
-                            .map(el => ({
-                                tag: el.tagName.toLowerCase(),
-                                text: el.textContent?.trim()
-                            }))
-                            .filter(item => item.text && item.text.length > 0);
-                        
-                        // Get full text
-                        const fullText = Array.from(article.querySelectorAll('p'))
-                            .map(p => p.textContent?.trim())
-                            .filter(text => text && text.length > 0)
-                            .join('\\n\\n');
-                        
-                        return {
-                            title,
-                            metaDescription: metaDesc,
-                            content: content,
-                            fullText: fullText,
-                            url: window.location.href
-                        };
-                    }
-                    """
-                )
-
-                logger.info(f"Successfully scraped article: {content.get('title', 'Unknown')}")
-                return content
-
-            finally:
-                await browser.close()
+        # Run newspaper4k in executor since it's synchronous
+        loop = asyncio.get_event_loop()
+        
+        def _scrape():
+            # Create article object
+            article = Article(url)
+            
+            # Download and parse the article
+            article.download()
+            article.parse()
+            
+            # Extract content
+            title = article.title or 'Untitled Article'
+            full_text = article.text or ''
+            meta_description = article.meta_description or ''
+            
+            # Build content structure similar to previous format
+            # Split text into paragraphs for content array
+            paragraphs = [p.strip() for p in full_text.split('\n\n') if p.strip()]
+            
+            # Create content array with paragraphs
+            content = []
+            for para in paragraphs:
+                if para:
+                    content.append({
+                        "tag": "p",
+                        "text": para
+                    })
+            
+            return {
+                "title": title,
+                "metaDescription": meta_description,
+                "content": content,
+                "fullText": full_text,
+                "url": url
+            }
+        
+        result = await loop.run_in_executor(None, _scrape)
+        logger.info(f"Successfully scraped article: {result.get('title', 'Unknown')}")
+        return result
 
     except Exception as e:
         logger.error(f"Error scraping article: {str(e)}")
